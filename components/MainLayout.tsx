@@ -45,6 +45,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
+  console.log("user id " , user?.id)
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -70,10 +71,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { href: '/demand', label: 'Demand', icon: MessageSquare },
   ]
 
-  const profileMenuItems = [
-    { href: `/user/${user?.id || 'me'}`, label: 'My Listings', icon: Package },
-    { href: '/profile', label: 'Profile', icon: Settings },
-  ]
+const profileMenuItems = [
+  { href: user?.id ? `/user/${user?.id}` : '/login', label: 'My Listings', icon: Package },
+  { href: '/profile', label: 'Profile', icon: Settings },
+]
 
   return (
     <div className="min-h-screen bg-gradient-surface">
@@ -124,11 +125,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
             {/* Right Section */}
             <div className="flex items-center space-x-3">
-              {/* Sell Button */}
-              <Link href="/sell">
+              {/* ADD Button */}
+              <Link href="/add">
                 <Button className="btn-gradient-primary text-sm font-medium">
                   <Plus className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">Sell</span>
+                  <span className="hidden sm:inline">Add</span>
                 </Button>
               </Link>
 

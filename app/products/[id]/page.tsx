@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Edit, Trash2, CheckCircle, AlertTriangle, Package, Briefcase } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Edit, Trash2, CheckCircle, AlertTriangle, Package, Briefcase, Maximize2, ZoomIn, ZoomOut, X, ExternalLink, FileText, Clock } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -24,6 +24,10 @@ export default function ProductDetailPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isMarkingSold, setIsMarkingSold] = useState(false)
+  
+  // Fullscreen photo viewer states
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [zoom, setZoom] = useState(1)
 
   // Check if current user owns this product
   const isOwner = session?.user?.email === product?.owner?.email
@@ -33,6 +37,18 @@ export default function ProductDetailPage() {
       fetchProductDetails()
     }
   }, [params.id])
+
+  // Close fullscreen on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+        setZoom(1)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isFullscreen])
 
   const fetchProductDetails = async () => {
     try {
@@ -82,6 +98,28 @@ export default function ProductDetailPage() {
     return conditions[condition] || 'Unknown'
   }
 
+  const getProductTypeText = (type: string): string => {
+    const types: Record<string, string> = {
+      'NEW': 'Brand New',
+      'USED': 'Used',
+      'RENT': 'For Rent',
+      'SERVICE': 'Service'
+    }
+    return types[type] || type
+  }
+
+  const getSeasonalityText = (seasonality: string): string => {
+    const seasonalities: Record<string, string> = {
+      'NONE': 'Year Round',
+      'HALL_DAYS': 'Hall Days',
+      'PLACEMENTS': 'Placement Season',
+      'SEMESTER_END': 'Semester End',
+      'FRESHERS': 'Freshers',
+      'FESTIVE': 'Festive Season'
+    }
+    return seasonalities[seasonality] || seasonality
+  }
+
   const nextImage = () => {
     if (product?.images && product.images.length > 1) {
       setSelectedImageIndex((prev) => 
@@ -97,6 +135,14 @@ export default function ProductDetailPage() {
       )
     }
   }
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+    setZoom(1) // reset zoom when toggling
+  }
+
+  const zoomIn = () => setZoom(prev => Math.min(prev + 0.5, 3))
+  const zoomOut = () => setZoom(prev => Math.max(prev - 0.5, 0.5))
 
   const handleDelete = async () => {
     try {
@@ -210,7 +256,7 @@ export default function ProductDetailPage() {
                   className="glass border-white/20"
                   asChild
                 >
-                  <Link href={`/sell?edit=${product.id}&type=product`}>
+                  <Link href={`/add?edit=${product.id}&type=product`}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Link>
@@ -266,16 +312,16 @@ export default function ProductDetailPage() {
 
           {/* Main Product Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-            {/* Image Gallery */}
+            {/* Image Gallery - Left Side */}
             <div className="space-y-4">
               {/* Main Image */}
-              <div className="relative aspect-square overflow-hidden rounded-xl glass-card">
+              <div className="relative aspect-square overflow-hidden rounded-xl glass-card bg-white/5">
                 {product.images && product.images.length > 0 ? (
                   <>
                     <img
                       src={product.images[selectedImageIndex]}
                       alt={product.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                     {product.images.length > 1 && (
                       <>
@@ -297,6 +343,17 @@ export default function ProductDetailPage() {
                         </Button>
                       </>
                     )}
+
+                    {/* Fullscreen toggle button bottom right */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute bottom-2 right-2 glass hover:bg-white/20"
+                      onClick={toggleFullscreen}
+                      title="View Fullscreen"
+                    >
+                      <Maximize2 className="w-5 h-5" />
+                    </Button>
                   </>
                 ) : (
                   <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -329,11 +386,15 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Product Details */}
+            {/* Product Details - Right Side */}
             <div className="space-y-6">
               <div>
-                <div className="flex items-center space-x-2 mb-2">
+                <div className="flex items-center flex-wrap gap-2 mb-2">
                   <Badge variant="secondary">{product.category}</Badge>
+                  <Badge variant="outline">{getProductTypeText(product.productType)}</Badge>
+                  {product.seasonality !== 'NONE' && (
+                    <Badge variant="outline">{getSeasonalityText(product.seasonality)}</Badge>
+                  )}
                   {product.originalPrice && product.price && (
                     <Badge className="bg-red-500 text-white">
                       {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
@@ -356,7 +417,15 @@ export default function ProductDetailPage() {
                   )}
                 </div>
 
-                {/* Key Details */}
+              {/* Description */}
+              {product.description && (
+                <div className="glass-card p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold mb-3">Description</h3>
+                  <p className="text-muted-foreground whitespace-pre-wrap">{product.description}</p>
+                </div>
+              )}
+
+                {/* Key Details Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="glass-card p-4 rounded-lg">
                     <p className="text-sm text-muted-foreground">Condition</p>
@@ -371,14 +440,44 @@ export default function ProductDetailPage() {
                       </p>
                     </div>
                   )}
+                  {product.ageInMonths !== undefined && product.ageInMonths !== null && (
+                    <div className="glass-card p-4 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Age</p>
+                      <p className="font-semibold flex items-center">
+                        <Clock className="w-4 h-4 mr-1" />
+                        {product.ageInMonths} months
+                      </p>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              {/* Description */}
-              {product.description && (
+                {/* E-commerce Link Button */}
+                {product.ecommerceLink && (
+                  <div className="mb-6">
+                    <Button
+                      className="btn-gradient-primary w-full"
+                      asChild
+                    >
+                      <a href={product.ecommerceLink} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View on E-commerce Site
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+              {/* Invoice Image */}
+              {product.invoiceImageUrl && (
                 <div className="glass-card p-6 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-3">Description</h3>
-                  <p className="text-muted-foreground whitespace-pre-wrap">{product.description}</p>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center">
+                    <FileText className="w-5 h-5 mr-2" />
+                    Invoice/Receipt
+                  </h3>
+                  <img
+                    src={product.invoiceImageUrl}
+                    alt="Invoice"
+                    className="max-w-full max-h-60 object-contain rounded border glass"
+                  />
                 </div>
               )}
 
@@ -409,9 +508,11 @@ export default function ProductDetailPage() {
                 {!isOwner && (
                   <div className="flex space-x-3 mt-4">
                     {product.mobileNumber && (
-                      <Button className="btn-gradient-primary flex-1">
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call Seller
+                      <Button className="btn-gradient-primary flex-1" asChild>
+                        <a href={`tel:${product.mobileNumber}`}>
+                          <Phone className="w-4 h-4 mr-2" />
+                          Call Seller
+                        </a>
                       </Button>
                     )}
                     <Button variant="outline" className="glass border-white/20 flex-1" asChild>
@@ -425,6 +526,122 @@ export default function ProductDetailPage() {
               </div>
             </div>
           </div>
+
+{/* Fullscreen Photo Viewer Overlay - Improved */}
+{isFullscreen && (
+  <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
+    {/* Close button - Top Right */}
+    <Button
+      variant="ghost"
+      size="lg"
+      onClick={toggleFullscreen}
+      className="absolute top-6 right-6 text-white hover:bg-white/20 z-20 p-3"
+    >
+      <X className="w-8 h-8" />
+    </Button>
+
+    {/* Left Navigation Arrow */}
+    {product.images && product.images.length > 1 && (
+      <Button
+        variant="ghost"
+        size="lg"
+        onClick={prevImage}
+        className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20 p-4"
+      >
+        <ChevronLeft className="w-10 h-10" />
+      </Button>
+    )}
+
+    {/* Right Navigation Arrow */}
+    {product.images && product.images.length > 1 && (
+      <Button
+        variant="ghost"
+        size="lg"
+        onClick={nextImage}
+        className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20 p-4"
+      >
+        <ChevronRight className="w-10 h-10" />
+      </Button>
+    )}
+
+    {/* Main Image Container */}
+    <div className="w-full h-full flex items-center justify-center p-20">
+      <div 
+        className="relative w-full h-full flex items-center justify-center overflow-hidden"
+        style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
+      >
+        <img
+          src={product.images?.[selectedImageIndex]}
+          alt={product.title}
+          className="max-w-full max-h-full object-contain"
+          style={{ 
+            transform: `scale(${zoom})`, 
+            transition: 'transform 0.3s ease',
+            width: 'auto',
+            height: 'auto'
+          }}
+          draggable={false}
+        />
+      </div>
+    </div>
+
+    {/* Bottom Controls */}
+    <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-6 bg-black/50 backdrop-blur-sm rounded-full px-6 py-3">
+      {/* Zoom Controls */}
+      <Button 
+        variant="ghost" 
+        onClick={zoomOut} 
+        disabled={zoom <= 0.5}
+        className="text-white hover:bg-white/20 p-2"
+      >
+        <ZoomOut className="w-5 h-5" />
+      </Button>
+      
+      <span className="text-white font-medium text-sm min-w-[60px] text-center">
+        {Math.round(zoom * 100)}%
+      </span>
+      
+      <Button 
+        variant="ghost" 
+        onClick={zoomIn} 
+        disabled={zoom >= 3}
+        className="text-white hover:bg-white/20 p-2"
+      >
+        <ZoomIn className="w-5 h-5" />
+      </Button>
+
+      {/* Image Counter */}
+      {product.images && product.images.length > 1 && (
+        <>
+          <div className="w-px h-6 bg-white/30 mx-2"></div>
+          <span className="text-white/80 text-sm">
+            {selectedImageIndex + 1} / {product.images.length}
+          </span>
+        </>
+      )}
+
+      {/* Reset Zoom Button */}
+      {zoom !== 1 && (
+        <>
+          <div className="w-px h-6 bg-white/30 mx-2"></div>
+          <Button 
+            variant="ghost" 
+            onClick={() => setZoom(1)}
+            className="text-white hover:bg-white/20 text-sm px-3 py-1"
+          >
+            Reset
+          </Button>
+        </>
+      )}
+    </div>
+
+    {/* Keyboard Hint */}
+    <div className="absolute top-6 left-6 text-white/60 text-sm">
+      Press ESC to close
+    </div>
+  </div>
+)}
+
 
           {/* Similar Products Section */}
           {similarProducts.length > 0 && (

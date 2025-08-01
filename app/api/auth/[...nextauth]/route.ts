@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
-import { createOrUpdateUser } from '@/lib/db'
+import { createOrUpdateUser, getUserByEmail } from '@/lib/db'
 import type { AuthOptions } from 'next-auth'
 
 // Helper function to generate initials from email
@@ -79,18 +79,22 @@ export const authOptions: AuthOptions = {
         return false
       }
     },
-    async jwt({ token, user, account, trigger }) {
-      if (trigger === 'signIn' || trigger === 'signUp') {
-        if (user) {
-          token.id = user.id
-          token.email = user.email
-          token.name = user.name || getInitialsFromEmail(user.email!)
-          token.picture = user.image
-        }
+    async jwt({ token, user, account }) {
+    if (user) {
+      // On first sign in, fetch the DB user to get the correct id
+      const dbUser = await getUserByEmail(user.email!)
+      if (dbUser) {
+        token.id = dbUser.id // This is the UUID from your DB
+        token.email = dbUser.email
+        token.name = dbUser.name ?? token.name
+        token.picture = dbUser.image ?? token.picture
+      } else {
+        // fallback, unlikely but handle gracefully
+        token.id = ""
       }
-      
-      return token
-    },
+    }
+    return token
+  },
     async session({ session, token }) {
       try {
         if (token && session.user) {

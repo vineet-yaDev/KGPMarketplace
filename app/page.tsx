@@ -21,30 +21,42 @@ export function useUserSync() {
   }, [isAuthenticated, user])
 }
 
-
+import { useState, useEffect } from 'react'
 import MainLayout from '@/components/MainLayout'
-import CategoryIcons from '@/components/home/CategoryIcons'
 import HeroCarousel from '@/components/home/HeroCarousel'
+import CategoryIcons from '@/components/home/CategoryIcons'
 import RecentProducts from '@/components/home/RecentProducts'
 import RecentServices from '@/components/home/RecentServices'
 import LiveDemands from '@/components/home/LiveDemands'
 import QuickFilters from '@/components/home/QuickFilters'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
 
 export default function HomePage() {
   const { status } = useAuth()
   const router = useRouter()
+  const [demands, setDemands] = useState([])
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
     }
   }, [status, router])
 
-  // Show loading spinner while checking authentication
+  // Fetch real demands data
+  useEffect(() => {
+    async function fetchDemands() {
+      try {
+        const res = await fetch('/api/demands?limit=10') // or your demands endpoint
+        const json = await res.json()
+        setDemands(json.demands || [])
+      } catch (e) {
+        console.error('Failed to fetch demands', e)
+      }
+    }
+    fetchDemands()
+  }, [])
+
   if (status === 'loading') {
     return (
       <MainLayout>
@@ -58,19 +70,16 @@ export default function HomePage() {
     )
   }
 
-  // Don't render content if not authenticated (will redirect)
-  if (status === 'unauthenticated') {
-    return null
-  }
+  if (status === 'unauthenticated') return null
 
   return (
     <MainLayout>
-      <div className="space-y-0">
+      <div>
         <HeroCarousel />
         <CategoryIcons />
         <RecentProducts />
         <RecentServices />
-        <LiveDemands />
+        <LiveDemands demands={demands} />
         <QuickFilters />
       </div>
     </MainLayout>

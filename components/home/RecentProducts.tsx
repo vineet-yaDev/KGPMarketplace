@@ -1,63 +1,118 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowRight } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import {
+  Package,
+  Smartphone,
+  BookOpen,
+  Shirt,
+  Dumbbell,
+  Armchair,
+  ChefHat,
+  PenTool,
+  Bike,
+  AlertCircle,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { mockProducts } from '@/data/mockData'
+import { Button } from '@/components/ui/button'
+import { Product } from '@/lib/types'
+
+const productCategoryIcons: Record<string, React.ReactNode> = {
+  ELECTRONICS: <Smartphone size={48} />,
+  BOOKS: <BookOpen size={48} />,
+  CLOTHING: <Shirt size={48} />,
+  SPORTS: <Dumbbell size={48} />,
+  FURNITURE: <Armchair size={48} />,
+  FOOD: <ChefHat size={48} />,
+  STATIONERY: <PenTool size={48} />,
+  VEHICLES: <Bike size={48} />,
+  OTHER: <AlertCircle size={48} />,
+}
 
 export default function RecentProducts() {
-  const recentProducts = mockProducts.slice(0, 4) // Show first 4 products
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch('/api/products?featured=true&limit=8')
+        const data = await res.json()
+        setProducts(data.products || [])
+      } catch (error) {
+        console.error('Failed to fetch products:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [])
 
   return (
-    <section className="px-4 py-8">
-      <div className="container mx-auto max-w-7xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Recent Products</h2>
-          <Button asChild variant="ghost" className="hover:bg-white/10">
-            <Link href="/products">
-              View All <ArrowRight className="h-4 w-4 ml-1" />
-            </Link>
-          </Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {recentProducts.map((product) => (
-            <Link key={product.id} href={`/product/${product.id}`} className="group">
-              <Card className="glass-card hover-lift overflow-hidden">
-                <div className="aspect-video relative overflow-hidden">
+    <section className="px-4 py-8 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold">Featured Products</h2>
+        <Link href="/products" className="text-sm text-primary underline">
+          View All
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-20 text-muted-foreground">Loading products...</div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-20 text-muted-foreground">No featured products available.</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          {products.map((product) => (
+            <Link
+              key={product.id}
+              href={`/products/${product.id}`}
+              className="group"
+              aria-label={`View details for ${product.title}`}
+            >
+              <Card className="glass-card hover-lift shadow-lg transition-shadow overflow-hidden">
+                {product.images.length > 0 ? (
                   <img
                     src={product.images[0]}
                     alt={product.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                    className="w-full h-48 object-cover rounded-t-md"
                   />
-                  {product.originalPrice && (
-                    <Badge className="absolute top-2 right-2 bg-red-500 text-white">
-                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
-                    </Badge>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold truncate mb-2">{product.title}</h3>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <span className="font-bold text-lg">₹{product.price.toLocaleString()}</span>
+                ) : (
+                  <div className="flex justify-center items-center w-full h-48 bg-gray-100 rounded-t-md text-gray-400">
+                    {productCategoryIcons[product.category?.toUpperCase() || 'OTHER'] || (
+                      <Package size={48} />
+                    )}
+                  </div>
+                )}
+                <CardContent>
+                  <h3 className="text-lg font-semibold line-clamp-2">{product.title}</h3>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-primary font-bold text-lg">
+                      ₹{product.price?.toLocaleString() || 'N/A'}
+                    </span>
                     {product.originalPrice && (
                       <span className="text-sm text-muted-foreground line-through">
                         ₹{product.originalPrice.toLocaleString()}
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary">Condition: {product.condition}/5</Badge>
-                    <span className="text-xs text-muted-foreground">{product.hall}</span>
+                  <div className="flex justify-between mt-3">
+                    <Badge variant="secondary" className="text-xs">
+                      Condition: {product.condition}/5
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{product.addressHall || '-'}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">by {product.seller.name}</p>
+                  <p className="mt-2 text-xs text-muted-foreground line-clamp-1">
+                    by {product.owner?.name || 'Unknown'}
+                  </p>
                 </CardContent>
               </Card>
             </Link>
           ))}
         </div>
-      </div>
+      )}
     </section>
   )
 }

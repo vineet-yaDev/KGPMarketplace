@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { Filter, TrendingDown } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { quickFilters } from '@/data/mockData'
+const quickFilters = [
+  { label: 'Free', price: 0, color: 'bg-green-500'},
+  { label: '<₹100', price: 100, color: 'bg-blue-500'},
+  { label: '<₹500', price: 500, color: 'bg-purple-500'},
+  { label: '<₹1000', price: 1000, color: 'bg-orange-500'},
+]
 
 export default function QuickFilters() {
   return (
@@ -27,9 +32,6 @@ export default function QuickFilters() {
                     <Filter className="h-8 w-8 text-white" />
                   </div>
                   <h3 className="font-bold text-lg mb-1">{filter.label}</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {filter.count} items
-                  </Badge>
                 </CardContent>
               </Card>
             </Link>

@@ -394,14 +394,19 @@ export async function getDemandById(id: string): Promise<Demand | null> {
 }
 
 export async function getUserById(id: string) {
+  if (!id) {
+    console.warn('No user id provided to getUserById');
+    return null;
+  }
+
   try {
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id },
       include: {
         products: {
           include: {
             owner: {
-              select: { name: true, email: true, image: true }
+              select: { id: true, name: true, email: true, image: true }
             }
           },
           orderBy: { createdAt: 'desc' }
@@ -409,7 +414,7 @@ export async function getUserById(id: string) {
         services: {
           include: {
             owner: {
-              select: { name: true, email: true, image: true }
+              select: { id: true, name: true, email: true, image: true }
             }
           },
           orderBy: { createdAt: 'desc' }
@@ -417,7 +422,7 @@ export async function getUserById(id: string) {
         demands: {
           include: {
             owner: {
-              select: { name: true, email: true, image: true }
+              select: { id: true, name: true, email: true, image: true }
             }
           },
           orderBy: { createdAt: 'desc' }
@@ -430,9 +435,53 @@ export async function getUserById(id: string) {
           }
         }
       }
+    });
+
+    if (!user) {
+      console.log(`User with id=${id} not found`);
+    }
+
+    return user;
+
+  } catch (error) {
+    console.log('Error fetching user by ID:', error);
+    return null;
+  }
+}
+
+
+// Add these functions to your existing db.ts file
+
+export async function updateDemand(id: string, updateData: {
+  title?: string
+  description?: string
+  mobileNumber?: string
+  productCategory?: ProductCategory
+  serviceCategory?: ServiceCategory
+}): Promise<Demand> {
+  try {
+    return await prisma.demand.update({
+      where: { id },
+      data: updateData,
+      include: {
+        owner: {
+          select: { name: true, email: true, image: true }
+        }
+      }
     })
   } catch (error) {
-    console.error('Error fetching user by ID:', error)
-    return null
+    console.error('Error updating demand:', error)
+    throw error
+  }
+}
+
+export async function deleteDemand(id: string): Promise<void> {
+  try {
+    await prisma.demand.delete({
+      where: { id }
+    })
+  } catch (error) {
+    console.error('Error deleting demand:', error)
+    throw error
   }
 }

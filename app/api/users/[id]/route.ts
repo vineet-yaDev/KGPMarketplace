@@ -6,7 +6,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const userId = params.id
+    const {id} = await params
+    const userId = id
 
     const user = await getUserById(userId)
     
