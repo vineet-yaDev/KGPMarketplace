@@ -1,0 +1,176 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Enums ---
+enum ProductStatus {
+  LISTED
+  SOLD
+  RENTED
+}
+
+enum ProductType {
+  NEW
+  USED
+  RENT
+  SERVICE
+}
+
+enum ProductSeasonality {
+  NONE
+  HALL_DAYS
+  PLACEMENTS
+  SEMESTER_END
+  FRESHERS
+  FESTIVE
+}
+
+enum KGPHalls {
+  RK
+  RP 
+  MS 
+  LLR
+  MMM
+  LBS
+  AZAD
+  PATEL
+  NEHRU
+  SNIG
+  SNVH
+  MT
+}
+
+enum ProductCategory {
+  ELECTRONICS
+  BOOKS
+  CLOTHING
+  FURNITURE
+  SPORTS
+  VEHICLES
+  FOOD
+  STATIONERY
+  OTHER
+}
+
+enum ServiceCategory {
+  TUTORING
+  REPAIR
+  DELIVERY
+  CLEANING
+  PHOTOGRAPHY
+  CODING
+  DESIGN
+  CONSULTING
+  OTHER
+}
+
+// --- User Model (JWT Compatible) ---
+model User {
+  id              String    @id @default(uuid())
+  name            String?   
+  email           String    @unique 
+  image           String?   
+  mobileNumber    String?   
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  isBlocked       Boolean   @default(false)
+  
+  // Relationships
+  products        Product[]
+  services        Service[]
+  demands         Demand[]
+  reportsMade     Report[]  @relation("ReportsMade")
+  reportsAgainst  Report[]  @relation("ReportsAgainst")
+}
+
+// --- Product Model ---
+model Product {
+  id              String             @id @default(uuid())
+  title           String             
+  description     String?         
+  price           Float?
+  originalPrice   Float?
+  productType     ProductType        @default(USED)
+  status          ProductStatus      @default(LISTED)
+  condition       Int                @default(3)
+  ageInMonths     Float?
+  addressHall     KGPHalls?
+  mobileNumber    String?             
+  ecommerceLink   String?            
+  invoiceImageUrl String?            
+  seasonality     ProductSeasonality @default(NONE)
+  category        ProductCategory    @default(OTHER)
+  images          String[]           
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  
+  // Proper relation with User
+  owner           User               @relation(fields: [ownerId], references: [id])
+  ownerId         String
+}
+
+// --- Service Model ---
+model Service {
+  id                String          @id @default(uuid())
+  title             String          
+  description       String?          
+  minPrice          Float?
+  maxPrice          Float?
+  addressHall       KGPHalls?
+  portfolioUrl      String?         
+  experienceYears   Float?
+  mobileNumber      String?
+  category          ServiceCategory @default(OTHER)
+  images            String[]        
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  
+  // Proper relation with User
+  owner             User            @relation(fields: [ownerId], references: [id])
+  ownerId           String
+}
+
+// --- Demand Model ---
+model Demand {
+  id                String           @id @default(uuid())
+  title             String           
+  description       String?           
+  mobileNumber      String?
+  productCategory   ProductCategory? 
+  serviceCategory   ServiceCategory? 
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Proper relation with User
+  owner             User             @relation(fields: [ownerId], references: [id])
+  ownerId           String
+}
+
+// --- Report Model ---
+model Report {
+  id                String   @id @default(uuid())
+  reason            String   
+  createdAt         DateTime @default(now())
+  
+  reportedBy        User     @relation("ReportsMade", fields: [reportedById], references: [id])
+  reportedById      String
+  reportedAgainst   User     @relation("ReportsAgainst", fields: [reportedAgainstId], references: [id])
+  reportedAgainstId String
+}
+
+// --- Admin Model ---
+model Admin {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  email     String   @unique
+  role      String   @default("MODERATOR")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

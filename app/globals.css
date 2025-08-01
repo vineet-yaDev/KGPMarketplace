@@ -1,0 +1,231 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* KGP Marketplace Design System - Glassmorphism & Modern Aesthetic */
+
+@layer base {
+  :root {
+    /* Background & Base Colors */
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --surface: 0 0% 100%;
+    
+    /* Glassmorphism Variables */
+    --glass-background: 255 255 255 / 0.1;
+    --glass-border: 255 255 255 / 0.2;
+    --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    
+    /* Modern Color Palette - Teal, Blue, Purple, Off-White */
+    --primary: 176 60% 45%;        /* Teal */
+    --primary-glow: 176 60% 65%;
+    --primary-foreground: 0 0% 98%;
+    
+    --secondary: 217 91% 60%;       /* Blue */
+    --secondary-glow: 217 91% 75%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --accent: 271 76% 53%;          /* Purple */
+    --accent-glow: 271 76% 68%;
+    --accent-foreground: 0 0% 98%;
+    
+    --success: 142 76% 36%;         /* Success Green */
+    --warning: 38 92% 50%;          /* Warning Orange */
+    --destructive: 0 84% 60%;       /* Error Red */
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Surface Colors */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    
+    /* Muted & Neutral */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-background: 210 40% 98%;
+    
+    /* Interactive Elements */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 176 60% 45%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)), hsl(var(--secondary-glow)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent-glow)));
+    --gradient-surface: linear-gradient(135deg, hsl(var(--surface)) 0%, hsl(var(--muted-background)) 100%);
+    
+    /* Shadows & Effects */
+    --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.37);
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
+    --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.12);
+    --shadow-strong: 0 15px 50px rgba(0, 0, 0, 0.15);
+    
+    /* Border Radius */
+    --radius: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    /* Dark Mode Base */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --surface: 224 71% 4%;
+    
+    /* Dark Glassmorphism */
+    --glass-background: 0 0 0 / 0.2;
+    --glass-border: 255 255 255 / 0.1;
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    
+    /* Dark Mode Colors - Complimentary shades */
+    --primary: 176 60% 55%;        /* Brighter Teal for dark mode */
+    --primary-glow: 176 60% 70%;
+    --secondary: 217 91% 70%;       /* Brighter Blue */
+    --secondary-glow: 217 91% 85%;
+    --accent: 271 76% 63%;          /* Brighter Purple */
+    --accent-glow: 271 76% 78%;
+    
+    /* Dark Surface Colors */
+    --card: 224 71% 4%;
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71% 4%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Dark Muted & Neutral */
+    --muted: 215 28% 17%;
+    --muted-foreground: 217.9 10.6% 64.9%;
+    --muted-background: 218 11% 12%;
+    
+    /* Dark Interactive */
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 176 60% 55%;
+    
+    /* Dark Shadows */
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.5);
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.4);
+    --shadow-strong: 0 15px 50px rgba(0, 0, 0, 0.6);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    background: var(--gradient-surface);
+  }
+}
+
+@layer components {
+  /* Glassmorphism Effect Classes */
+  .glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(var(--glass-background));
+    border: 1px solid rgba(var(--glass-border));
+    box-shadow: var(--shadow-glass);
+  }
+  
+  .glass-card {
+    @apply glass rounded-xl transition-all duration-300;
+  }
+  
+  .glass-nav {
+    @apply glass rounded-2xl border transition-all duration-300;
+  }
+  
+  /* Modern Button Variants */
+  .btn-glass {
+    @apply glass hover:bg-white/20 dark:hover:bg-black/20 transition-all duration-300;
+  }
+  
+  .btn-gradient-primary {
+    background: var(--gradient-primary);
+    @apply text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300;
+  }
+  
+  .btn-gradient-secondary {
+    background: var(--gradient-secondary);
+    @apply text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-300;
+  }
+  
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .bg-gradient-secondary {
+    background: var(--gradient-secondary);
+  }
+  
+  .bg-gradient-accent {
+    background: var(--gradient-accent);
+  }
+  
+  /* Smooth Transitions */
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+  
+  .transition-fast {
+    transition: var(--transition-fast);
+  }
+  
+  /* Scrolling Animations */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  /* Custom Scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary)) transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary));
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary-glow));
+  }
+  
+  /* Ticker Animation */
+  @keyframes ticker {
+    0% { transform: translateY(100%); }
+    100% { transform: translateY(-100%); }
+  }
+  
+  .ticker-animate {
+    animation: ticker 10s linear infinite;
+  }
+  
+  /* Hover Effects */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+  
+  .hover-glass {
+    @apply transition-all duration-300 hover:backdrop-blur-md hover:bg-white/10 dark:hover:bg-black/10;
+  }
+}
