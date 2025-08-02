@@ -15,27 +15,20 @@ const SCALE_RANGE = 0.05; // 80%-100%-80%
 const FADE_RANGE = 0.25; // fraction of box height where fade is strongest
 
 export default function LiveDemands({ demands }: LiveDemandsProps) {
-  // Render nothing if no demands
-  if (!demands.length) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="rounded-2xl border shadow flex h-[200px] items-center justify-center bg-background text-muted-foreground">
-          No live demands available.
-        </div>
-      </div>
-    )
-  }
+  // Move hooks to the top, before any conditional returns
+  const [offset, setOffset] = useState(0)
+  const requestRef = useRef(0)
 
   // Duplicate list for seamless loop
   const repeated = [...demands, ...demands]
-
-  const [offset, setOffset] = useState(0)
-  const requestRef = useRef(0)
 
   // Calculate total height to scroll
   const total = repeated.length * DEMAND_HEIGHT
 
   useEffect(() => {
+    // Only run animation if there are demands
+    if (!demands.length) return
+
     let last: number | null = null
 
     // 45px/sec upward (tweakable for speed)
@@ -54,8 +47,18 @@ export default function LiveDemands({ demands }: LiveDemandsProps) {
     }
     requestRef.current = requestAnimationFrame(animate)
     return () => cancelAnimationFrame(requestRef.current)
-    // eslint-disable-next-line
-  }, [demands.length])
+  }, [demands.length, total])
+
+  // Render nothing if no demands
+  if (!demands.length) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="rounded-2xl border shadow flex h-[200px] items-center justify-center bg-background text-muted-foreground">
+          No live demands available.
+        </div>
+      </div>
+    )
+  }
 
   // For color schema match, use Tailwind's adaptive classes
   return (

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { ArrowLeft, Package, Briefcase, MessageSquare, Phone, Calendar, MapPin, Star, Clock } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
@@ -35,20 +36,14 @@ interface UserWithListings {
 export default function UserProfilePage() {
   const params = useParams()
   const router = useRouter()
-  const { userEmail, session } = useAuth()
+  const { session } = useAuth()
   const [user, setUser] = useState<UserWithListings | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('products')
 
   const isOwnProfile = session?.user?.email === user?.email
 
-  useEffect(() => {
-    if (params.id) {
-      fetchUserProfile()
-    }
-  }, [params.id])
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/users/${params.id}`)
@@ -64,7 +59,13 @@ export default function UserProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (params.id) {
+      fetchUserProfile()
+    }
+  }, [params.id, fetchUserProfile])
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-IN', {
@@ -81,17 +82,6 @@ export default function UserProfilePage() {
       day: 'numeric',
       year: 'numeric'
     })
-  }
-
-  const getConditionText = (condition: number): string => {
-    const conditions: Record<number, string> = {
-      1: 'Poor',
-      2: 'Fair', 
-      3: 'Good',
-      4: 'Very Good',
-      5: 'Excellent'
-    }
-    return conditions[condition] || 'Unknown'
   }
 
   if (loading) {
@@ -113,7 +103,7 @@ export default function UserProfilePage() {
         <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">User not found</h2>
-            <p className="text-muted-foreground mb-4">The user profile you're looking for doesn't exist.</p>
+            <p className="text-muted-foreground mb-4">The user profile you&apos;re looking for doesn&apos;t exist.</p>
             <Button onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -214,7 +204,7 @@ export default function UserProfilePage() {
                       <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No products listed</h3>
                       <p className="text-muted-foreground">
-                        {isOwnProfile ? "You haven't listed any products yet." : "This user hasn't listed any products."}
+                        {isOwnProfile ? "You haven&apos;t listed any products yet." : "This user hasn&apos;t listed any products."}
                       </p>
                     </div>
                   ) : (
@@ -224,10 +214,12 @@ export default function UserProfilePage() {
                           <Card className="glass-card hover-lift overflow-hidden h-full">
                             <div className="aspect-video relative overflow-hidden">
                               {product.images && product.images.length > 0 ? (
-                                <img
+                                <Image
                                   src={product.images[0]}
                                   alt={product.title}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                  className="object-cover group-hover:scale-110 transition-smooth"
                                 />
                               ) : (
                                 <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -280,7 +272,7 @@ export default function UserProfilePage() {
                       <Briefcase className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No services offered</h3>
                       <p className="text-muted-foreground">
-                        {isOwnProfile ? "You haven't offered any services yet." : "This user hasn't offered any services."}
+                        {isOwnProfile ? "You haven&apos;t offered any services yet." : "This user hasn&apos;t offered any services."}
                       </p>
                     </div>
                   ) : (
@@ -290,10 +282,12 @@ export default function UserProfilePage() {
                           <Card className="glass-card hover-lift h-full overflow-hidden">
                             <div className="aspect-video relative overflow-hidden">
                               {service.images && service.images.length > 0 ? (
-                                <img
+                                <Image
                                   src={service.images[0]}
                                   alt={service.title}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                                  fill
+                                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                  className="object-cover group-hover:scale-110 transition-smooth"
                                 />
                               ) : (
                                 <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -370,7 +364,7 @@ export default function UserProfilePage() {
                       <MessageSquare className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No demands posted</h3>
                       <p className="text-muted-foreground">
-                        {isOwnProfile ? "You haven't posted any demands yet." : "This user hasn't posted any demands."}
+                        {isOwnProfile ? "You haven&apos;t posted any demands yet." : "This user hasn&apos;t posted any demands."}
                       </p>
                     </div>
                   ) : (

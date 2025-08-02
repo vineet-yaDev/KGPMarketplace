@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Package, Briefcase, MessageSquare, Upload, X, Camera, AlertCircle, Info } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
@@ -11,86 +11,93 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useSession } from 'next-auth/react'
 import { CldUploadWidget } from 'next-cloudinary'
+import Image from 'next/image'
 
-const halls = [
-  'RK', 'RP', 'MS', 'LLR', 'MMM', 'LBS', 'AZAD', 'PATEL', 'NEHRU', 'SNIG', 'SNVH', 'MT'
-]
+// Import from your lib files
+import { 
+  HALL_OPTIONS, 
+  PRODUCT_CATEGORY_OPTIONS, 
+  SERVICE_CATEGORY_OPTIONS,
+  PRODUCT_TYPES,
+  SEASONALITIES,
+  CONDITION_OPTIONS,
+  VALIDATION
+} from '@/lib/constants'
+import type {
+  ProductFormData,
+  ServiceFormData,
+  DemandFormData,
+  KGPHalls,
+  ProductCategory,
+  ServiceCategory,
+  ProductType,
+  ProductSeasonality,
+  CloudinaryResult,
+  CloudinaryError,
+} from '@/lib/types'
 
-const productCategories = [
-  'ELECTRONICS', 'BOOKS', 'CLOTHING', 'FURNITURE', 'SPORTS', 'VEHICLES', 'FOOD', 'STATIONERY', 'OTHER'
-]
-
-const serviceCategories = [
-  'TUTORING', 'REPAIR', 'DELIVERY', 'CLEANING', 'PHOTOGRAPHY', 'CODING', 'DESIGN', 'CONSULTING', 'OTHER'
-]
-
-const productTypes = [
-  { value: 'NEW', label: 'New' },
-  { value: 'USED', label: 'Used/Second-hand' },
-  { value: 'RENT', label: 'For Rent' }
-]
-
-const seasonalities = [
-  { value: 'NONE', label: 'None' },
-  { value: 'HALL_DAYS', label: 'Hall Days' },
-  { value: 'PLACEMENTS', label: 'Placements' },
-  { value: 'SEMESTER_END', label: 'Semester End' },
-  { value: 'FRESHERS', label: 'Freshers' },
-  { value: 'FESTIVE', label: 'Festive' }
-]
-
-interface ProductFormData {
-  title: string
-  description: string
-  price: string
-  originalPrice: string
-  productType: string
-  condition: string
-  ageInMonths: string
-  category: string
-  addressHall: string
-  mobileNumber: string
-  ecommerceLink: string
-  seasonality: string
-  images: string[]
+interface EditProduct {
+  title: string;
+  description?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
+  productType: ProductType;
+  condition: number;
+  ageInMonths?: number | null;
+  category: ProductCategory;
+  addressHall?: KGPHalls | null;
+  mobileNumber?: string | null;
+  ecommerceLink?: string | null;
+  seasonality: ProductSeasonality;
+  images: string[];
 }
 
-interface ServiceFormData {
-  title: string
-  description: string
-  minPrice: string
-  maxPrice: string
-  category: string
-  addressHall: string
-  mobileNumber: string
-  experienceYears: string
-  portfolioUrl: string
-  images: string[]
+interface EditService {
+  title: string;
+  description?: string | null;
+  minPrice?: number | null;
+  maxPrice?: number | null;
+  category: ServiceCategory;
+  addressHall?: KGPHalls | null;
+  mobileNumber?: string | null;
+  experienceYears?: number | null;
+  portfolioUrl?: string | null;
+  images: string[];
 }
 
-interface DemandFormData {
-  title: string
-  description: string
-  productCategory: string
-  serviceCategory: string
-  mobileNumber: string
+interface EditDemand {
+  title: string;
+  description?: string | null;
+  productCategory?: ProductCategory | null;
+  serviceCategory?: ServiceCategory | null;
+  mobileNumber?: string | null;
+}
+
+// Custom Cloudinary options
+const cloudinaryOptions = {
+  maxFiles: VALIDATION.MAX_IMAGES_PER_LISTING,
+  resourceType: "image" as const,
+  clientAllowedFormats: ["jpg", "jpeg", "png", "gif", "webp"],
+  maxFileSize: VALIDATION.MAX_IMAGE_SIZE_BYTES,
+  cropping: false,
+  multiple: true,
+  defaultSource: "local" as const,
 }
 
 export default function SellPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const searchParams = useSearchParams()  // This is the suspenseful part
   const { data: session } = useSession()
   
   // Get edit parameters
   const editId = searchParams.get('edit')
-  const editType = searchParams.get('type') // 'product', 'service', or 'demand'
-  const isEditing = editId && editType
+  const editType = searchParams.get('type') as 'product' | 'service' | 'demand' | null
+  const isEditing = Boolean(editId && editType)
 
-  const [activeTab, setActiveTab] = useState(editType || 'product')
+  const [activeTab, setActiveTab] = useState<'product' | 'service' | 'demand'>(editType || 'product')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploadError, setUploadError] = useState<string>('')
@@ -104,8 +111,8 @@ export default function SellPage() {
     productType: 'USED',
     condition: '3',
     ageInMonths: '',
-    category: '',
-    addressHall: '',
+    category: '' as ProductCategory,
+    addressHall: '' as KGPHalls,
     mobileNumber: '',
     ecommerceLink: '',
     seasonality: 'NONE',
@@ -118,8 +125,8 @@ export default function SellPage() {
     description: '',
     minPrice: '',
     maxPrice: '',
-    category: '',
-    addressHall: '',
+    category: '' as ServiceCategory,
+    addressHall: '' as KGPHalls,
     mobileNumber: '',
     experienceYears: '',
     portfolioUrl: '',
@@ -135,13 +142,7 @@ export default function SellPage() {
     mobileNumber: ''
   })
 
-  useEffect(() => {
-    if (isEditing) {
-      loadEditData()
-    }
-  }, [editId, editType])
-
-  const loadEditData = async () => {
+  const loadEditData = useCallback(async () => {
     if (!editId || !editType) return
 
     try {
@@ -150,7 +151,7 @@ export default function SellPage() {
 
       if (response.ok) {
         if (editType === 'product') {
-          const product = data.product
+          const product: EditProduct = data.product
           setProductForm({
             title: product.title || '',
             description: product.description || '',
@@ -159,29 +160,29 @@ export default function SellPage() {
             productType: product.productType || 'USED',
             condition: product.condition?.toString() || '3',
             ageInMonths: product.ageInMonths?.toString() || '',
-            category: product.category || '',
-            addressHall: product.addressHall || '',
+            category: product.category || 'OTHER',
+            addressHall: product.addressHall || 'RK',
             mobileNumber: product.mobileNumber || '',
             ecommerceLink: product.ecommerceLink || '',
             seasonality: product.seasonality || 'NONE',
             images: product.images || []
           })
         } else if (editType === 'service') {
-          const service = data.service
+          const service: EditService = data.service
           setServiceForm({
             title: service.title || '',
             description: service.description || '',
             minPrice: service.minPrice?.toString() || '',
             maxPrice: service.maxPrice?.toString() || '',
-            category: service.category || '',
-            addressHall: service.addressHall || '',
+            category: service.category || 'OTHER',
+            addressHall: service.addressHall || 'RK',
             mobileNumber: service.mobileNumber || '',
             experienceYears: service.experienceYears?.toString() || '',
             portfolioUrl: service.portfolioUrl || '',
             images: service.images || []
           })
         } else if (editType === 'demand') {
-          const demand = data.demand
+          const demand: EditDemand = data.demand
           setDemandForm({
             title: demand.title || '',
             description: demand.description || '',
@@ -194,37 +195,43 @@ export default function SellPage() {
     } catch (error) {
       console.error('Error loading edit data:', error)
     }
-  }
+  }, [editId, editType])
+
+  useEffect(() => {
+    if (isEditing) {
+      loadEditData()
+    }
+  }, [isEditing, loadEditData])
 
   // Image upload handlers
-  const handleProductImageUpload = useCallback((result: any, { widget }: any) => {
-    if (result.event === 'success') {
-      console.log('Upload successful:', result.info)
+  const handleProductImageUpload = useCallback((result: CloudinaryResult) => {
+    if (result.event === 'success' && result.info && typeof result.info === 'object') {
+      const secureUrl = (result.info as { secure_url: string }).secure_url
       setProductForm(prev => ({
         ...prev,
-        images: [...prev.images, result.info.secure_url]
+        images: [...prev.images, secureUrl]
       }))
       setUploadError('')
     }
   }, [])
 
-  const handleProductImageUploadError = useCallback((error: any) => {
+  const handleProductImageUploadError = useCallback((error: CloudinaryError) => {
     console.error('Upload error:', error)
     setUploadError('Failed to upload image. Please try again.')
   }, [])
 
-  const handleServiceImageUpload = useCallback((result: any, { widget }: any) => {
-    if (result.event === 'success') {
-      console.log('Upload successful:', result.info)
+  const handleServiceImageUpload = useCallback((result: CloudinaryResult) => {
+    if (result.event === 'success' && result.info && typeof result.info === 'object') {
+      const secureUrl = (result.info as { secure_url: string }).secure_url
       setServiceForm(prev => ({
         ...prev,
-        images: [...prev.images, result.info.secure_url]
+        images: [...prev.images, secureUrl]
       }))
       setUploadError('')
     }
   }, [])
 
-  const handleServiceImageUploadError = useCallback((error: any) => {
+  const handleServiceImageUploadError = useCallback((error: CloudinaryError) => {
     console.error('Upload error:', error)
     setUploadError('Failed to upload image. Please try again.')
   }, [])
@@ -246,47 +253,39 @@ export default function SellPage() {
   // Validation functions
   const validateProductForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!productForm.title.trim()) newErrors.title = 'Title is required'
     if (!productForm.category) newErrors.category = 'Category is required'
     if (!productForm.price || parseFloat(productForm.price) <= 0) newErrors.price = 'Valid price is required'
     if (!productForm.addressHall) newErrors.addressHall = 'Hall is required'
     if (!productForm.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required'
-    if (productForm.mobileNumber && !/^\d{10}$/.test(productForm.mobileNumber.replace(/\D/g, ''))) {
+    if (productForm.mobileNumber && !VALIDATION.MOBILE_NUMBER_REGEX.test(productForm.mobileNumber.replace(/\D/g, ''))) {
       newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const validateServiceForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!serviceForm.title.trim()) newErrors.title = 'Service title is required'
     if (!serviceForm.category) newErrors.category = 'Category is required'
     if (!serviceForm.minPrice || parseFloat(serviceForm.minPrice) <= 0) newErrors.minPrice = 'Minimum price is required'
     if (!serviceForm.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required'
-    if (serviceForm.mobileNumber && !/^\d{10}$/.test(serviceForm.mobileNumber.replace(/\D/g, ''))) {
+    if (serviceForm.mobileNumber && !VALIDATION.MOBILE_NUMBER_REGEX.test(serviceForm.mobileNumber.replace(/\D/g, ''))) {
       newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const validateDemandForm = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!demandForm.title.trim()) newErrors.title = 'Title is required'
-    if (!demandForm.productCategory && !demandForm.serviceCategory) {
-      newErrors.category = 'Please select at least one category'
-    }
+    if (!demandForm.productCategory && !demandForm.serviceCategory) newErrors.category = 'Please select at least one category'
     if (!demandForm.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required'
-    if (demandForm.mobileNumber && !/^\d{10}$/.test(demandForm.mobileNumber.replace(/\D/g, ''))) {
+    if (demandForm.mobileNumber && !VALIDATION.MOBILE_NUMBER_REGEX.test(demandForm.mobileNumber.replace(/\D/g, ''))) {
       newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -295,14 +294,11 @@ export default function SellPage() {
   const handleProductSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!session?.user?.email) return
-
     if (!validateProductForm()) return
-
     setIsSubmitting(true)
     try {
       const url = isEditing ? `/api/products/${editId}` : '/api/products'
       const method = isEditing ? 'PUT' : 'POST'
-      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -322,14 +318,8 @@ export default function SellPage() {
           images: productForm.images
         })
       })
-
       if (response.ok) {
-        const data = await response.json()
-        if (isEditing) {
-          router.push(`/products/${editId}`)
-        } else {
-          router.push('/products')
-        }
+        router.push(isEditing ? `/products/${editId}` : '/products')
       } else {
         const errorData = await response.json()
         setErrors({ submit: errorData.error || `Failed to ${isEditing ? 'update' : 'create'} product` })
@@ -345,14 +335,11 @@ export default function SellPage() {
   const handleServiceSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!session?.user?.email) return
-
     if (!validateServiceForm()) return
-
     setIsSubmitting(true)
     try {
       const url = isEditing ? `/api/services/${editId}` : '/api/services'
       const method = isEditing ? 'PUT' : 'POST'
-      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -369,14 +356,8 @@ export default function SellPage() {
           images: serviceForm.images
         })
       })
-
       if (response.ok) {
-        const data = await response.json()
-        if (isEditing) {
-          router.push(`/services/${editId}`)
-        } else {
-          router.push('/services')
-        }
+        router.push(isEditing ? `/services/${editId}` : '/services')
       } else {
         const errorData = await response.json()
         setErrors({ submit: errorData.error || `Failed to ${isEditing ? 'update' : 'create'} service` })
@@ -392,14 +373,11 @@ export default function SellPage() {
   const handleDemandSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!session?.user?.email) return
-
     if (!validateDemandForm()) return
-
     setIsSubmitting(true)
     try {
       const url = isEditing ? `/api/demands/${editId}` : '/api/demands'
       const method = isEditing ? 'PUT' : 'POST'
-      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -411,14 +389,8 @@ export default function SellPage() {
           mobileNumber: demandForm.mobileNumber || null
         })
       })
-
       if (response.ok) {
-        const data = await response.json()
-        if (isEditing) {
-          router.push(`/demand/${editId}`)
-        } else {
-          router.push('/demand')
-        }
+        router.push(isEditing ? `/demand/${editId}` : '/demand')
       } else {
         const errorData = await response.json()
         setErrors({ submit: errorData.error || `Failed to ${isEditing ? 'update' : 'create'} demand` })
@@ -431,729 +403,711 @@ export default function SellPage() {
     }
   }
 
-  // Cloud name validation
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-
-  if (!cloudName) {
-    console.error('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is not set')
-  }
 
   return (
     <MainLayout>
-      <div className="min-h-screen bg-gradient-surface">
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">
-              {isEditing ? `Edit Your ${editType}` : 'Create Your Listing'}
-            </h1>
-            <p className="text-muted-foreground text-lg">
-              {isEditing 
-                ? `Update your ${editType} details` 
-                : 'Share what you have to offer or what you need with the KGP community'
-              }
-            </p>
+      <Suspense fallback={<div>Loading your listing data...</div>}>
+        <div className="min-h-screen bg-gradient-surface">
+          <div className="container mx-auto px-4 py-8 max-w-6xl">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold mb-4">
+                {isEditing ? `Edit Your ${editType}` : 'Create Your Listing'}
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                {isEditing 
+                  ? `Update your ${editType} details` 
+                  : 'Share what you have to offer or what you need with the KGP community'
+                }
+              </p>
+            </div>
+
+            {/* Error Alert */}
+            {errors.submit && (
+              <Alert className="mb-6 border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-red-800">
+                  {errors.submit}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Upload Error Alert */}
+            {uploadError && (
+              <Alert className="mb-6 border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="text-red-800">
+                  {uploadError}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Tabs */}
+            <Card className="glass-card">
+              <CardContent className="p-8">
+                <Tabs 
+                  value={activeTab} 
+                  onValueChange={isEditing ? undefined : (value) => setActiveTab(value as 'product' | 'service' | 'demand')} 
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-3 glass mb-8">
+                    <TabsTrigger 
+                      value="product" 
+                      className="flex items-center space-x-2 py-3"
+                      disabled={isEditing ? editType !== 'product' : false}
+                    >
+                      <Package className="w-5 h-5" />
+                      <span className="font-medium">
+                        {isEditing && editType === 'product' ? 'Edit Product' : 'Sell Product'}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="service" 
+                      className="flex items-center space-x-2 py-3"
+                      disabled={isEditing ? editType !== 'service' : false}
+                    >
+                      <Briefcase className="w-5 h-5" />
+                      <span className="font-medium">
+                        {isEditing && editType === 'service' ? 'Edit Service' : 'Offer Service'}
+                      </span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="demand" 
+                      className="flex items-center space-x-2 py-3"
+                      disabled={isEditing ? editType !== 'demand' : false}
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      <span className="font-medium">
+                        {isEditing && editType === 'demand' ? 'Edit Demand' : 'Post Demand'}
+                      </span>
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Product Form */}
+                  <TabsContent value="product" className="mt-6">
+                    <form onSubmit={handleProductSubmit} className="space-y-8">
+                      {/* Basic Information */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Info className="w-5 h-5" />
+                            <span>Basic Information</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="product-title">Product Title *</Label>
+                              <Input
+                                id="product-title"
+                                placeholder="e.g. iPhone 13 Pro Max 256GB"
+                                value={productForm.title}
+                                onChange={(e) => setProductForm({...productForm, title: e.target.value})}
+                                className={`glass border-white/20 ${errors.title ? 'border-red-500' : ''}`}
+                              />
+                              {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="product-category">Category *</Label>
+                              <Select 
+                                value={productForm.category} 
+                                onValueChange={(value) => setProductForm({...productForm, category: value as ProductCategory})}
+                              >
+                                <SelectTrigger className={`glass border-white/20 ${errors.category ? 'border-red-500' : ''}`}>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {PRODUCT_CATEGORY_OPTIONS.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="product-description">Description</Label>
+                            <Textarea
+                              id="product-description"
+                              placeholder="Describe your product in detail, including features, condition, and any other relevant information..."
+                              value={productForm.description}
+                              onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                              className="glass border-white/20"
+                              rows={5}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Pricing & Condition */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle>Pricing & Condition</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="product-price">Selling Price (₹) *</Label>
+                              <Input
+                                id="product-price"
+                                type="number"
+                                placeholder="e.g. 50000"
+                                value={productForm.price}
+                                onChange={(e) => setProductForm({...productForm, price: e.target.value})}
+                                className={`glass border-white/20 ${errors.price ? 'border-red-500' : ''}`}
+                              />
+                              {errors.price && <p className="text-red-500 text-sm">{errors.price}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="product-original-price">Original Price (₹)</Label>
+                              <Input
+                                id="product-original-price"
+                                type="number"
+                                placeholder="e.g. 70000"
+                                value={productForm.originalPrice}
+                                onChange={(e) => setProductForm({...productForm, originalPrice: e.target.value})}
+                                className="glass border-white/20"
+                              />
+                              <p className="text-xs text-muted-foreground">Optional: Helps buyers see the value</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="product-type">Product Type</Label>
+                              <Select 
+                                value={productForm.productType} 
+                                onValueChange={(value) => setProductForm({...productForm, productType: value as ProductType})}
+                              >
+                                <SelectTrigger className="glass border-white/20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {PRODUCT_TYPES.map(type => (
+                                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="product-condition">Condition (1-5)</Label>
+                              <Select 
+                                value={productForm.condition} 
+                                onValueChange={(value) => setProductForm({...productForm, condition: value})}
+                              >
+                                <SelectTrigger className="glass border-white/20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {CONDITION_OPTIONS.map(option => (
+                                    <SelectItem key={option.value} value={option.value.toString()}>{option.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="product-age">Age (Months)</Label>
+                              <Input
+                                id="product-age"
+                                type="number"
+                                placeholder="e.g. 12"
+                                value={productForm.ageInMonths}
+                                onChange={(e) => setProductForm({...productForm, ageInMonths: e.target.value})}
+                                className="glass border-white/20"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="product-seasonality">Seasonality</Label>
+                              <Select 
+                                value={productForm.seasonality} 
+                                onValueChange={(value) => setProductForm({...productForm, seasonality: value as ProductSeasonality})}
+                              >
+                                <SelectTrigger className="glass border-white/20">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {SEASONALITIES.map(season => (
+                                    <SelectItem key={season.value} value={season.value}>{season.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Images */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Camera className="w-5 h-5" />
+                            <span>Product Images</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {productForm.images.map((image, index) => (
+                              <div key={index} className="relative group">
+                                <Image
+                                  src={image}
+                                  alt={`Product ${index + 1}`}
+                                  width={200}
+                                  height={128}
+                                  className="w-full h-32 object-cover rounded-lg"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => removeProductImage(index)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            
+                            <CldUploadWidget
+                              uploadPreset="Marketplace"
+                              onSuccess={handleProductImageUpload}
+                              onError={handleProductImageUploadError}
+                              options={cloudinaryOptions}
+                            >
+                              {({ open }) => {
+                                if (!cloudName) {
+                                  return (
+                                    <div className="h-32 border-2 border-dashed border-red-300 rounded-lg flex flex-col items-center justify-center">
+                                      <AlertCircle className="w-6 h-6 mb-2 text-red-500" />
+                                      <span className="text-sm text-red-500">Config Error</span>
+                                    </div>
+                                  )
+                                }
+                                
+                                return (
+                                  <div
+                                    onClick={() => open()}
+                                    className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                                  >
+                                    <Upload className="w-6 h-6 mb-2 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">Add Image</span>
+                                  </div>
+                                )
+                              }}
+                            </CldUploadWidget>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Upload up to 5 images (JPG, PNG, GIF, WebP). Max 10MB per image. First image will be the main display image.
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      {/* Contact & Location */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle>Contact & Location</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="product-hall">Hall *</Label>
+                              <Select 
+                                value={productForm.addressHall} 
+                                onValueChange={(value) => setProductForm({...productForm, addressHall: value as KGPHalls})}
+                              >
+                                <SelectTrigger className={`glass border-white/20 ${errors.addressHall ? 'border-red-500' : ''}`}>
+                                  <SelectValue placeholder="Select your hall" />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {HALL_OPTIONS.map(hall => (
+                                    <SelectItem key={hall.value} value={hall.value}>{hall.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {errors.addressHall && <p className="text-red-500 text-sm">{errors.addressHall}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="product-mobile">Mobile Number *</Label>
+                              <Input
+                                id="product-mobile"
+                                placeholder="e.g. 9876543210"
+                                value={productForm.mobileNumber}
+                                onChange={(e) => setProductForm({...productForm, mobileNumber: e.target.value})}
+                                className={`glass border-white/20 ${errors.mobileNumber ? 'border-red-500' : ''}`}
+                              />
+                              {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="product-ecommerce">E-commerce Link</Label>
+                            <Input
+                              id="product-ecommerce"
+                              placeholder="e.g. https://amazon.in/product-link"
+                              value={productForm.ecommerceLink}
+                              onChange={(e) => setProductForm({...productForm, ecommerceLink: e.target.value})}
+                              className="glass border-white/20"
+                            />
+                            <p className="text-xs text-muted-foreground">Optional: Link to original product page for reference</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full btn-gradient-primary py-3 text-lg font-semibold" 
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting 
+                          ? (isEditing ? 'Updating Product...' : 'Creating Product...') 
+                          : (isEditing ? 'Update Product' : 'Create Product Listing')
+                        }
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  {/* Service Form */}
+                  <TabsContent value="service" className="mt-6">
+                    <form onSubmit={handleServiceSubmit} className="space-y-8">
+                      {/* Basic Information */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Info className="w-5 h-5" />
+                            <span>Service Information</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="service-title">Service Title *</Label>
+                              <Input
+                                id="service-title"
+                                placeholder="e.g. Python Programming Tutoring"
+                                value={serviceForm.title}
+                                onChange={(e) => setServiceForm({...serviceForm, title: e.target.value})}
+                                className={`glass border-white/20 ${errors.title ? 'border-red-500' : ''}`}
+                              />
+                              {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="service-category">Category *</Label>
+                              <Select 
+                                value={serviceForm.category} 
+                                onValueChange={(value) => setServiceForm({...serviceForm, category: value as ServiceCategory})}
+                              >
+                                <SelectTrigger className={`glass border-white/20 ${errors.category ? 'border-red-500' : ''}`}>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {SERVICE_CATEGORY_OPTIONS.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="service-description">Service Description</Label>
+                            <Textarea
+                              id="service-description"
+                              placeholder="Describe your service, experience, what you offer, and any other relevant details..."
+                              value={serviceForm.description}
+                              onChange={(e) => setServiceForm({...serviceForm, description: e.target.value})}
+                              className="glass border-white/20"
+                              rows={5}
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Pricing & Experience */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle>Pricing & Experience</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="service-min-price">Minimum Price (₹) *</Label>
+                              <Input
+                                id="service-min-price"
+                                type="number"
+                                placeholder="e.g. 500"
+                                value={serviceForm.minPrice}
+                                onChange={(e) => setServiceForm({...serviceForm, minPrice: e.target.value})}
+                                className={`glass border-white/20 ${errors.minPrice ? 'border-red-500' : ''}`}
+                              />
+                              {errors.minPrice && <p className="text-red-500 text-sm">{errors.minPrice}</p>}
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="service-max-price">Maximum Price (₹)</Label>
+                              <Input
+                                id="service-max-price"
+                                type="number"
+                                placeholder="e.g. 2000"
+                                value={serviceForm.maxPrice}
+                                onChange={(e) => setServiceForm({...serviceForm, maxPrice: e.target.value})}
+                                className="glass border-white/20"
+                              />
+                              <p className="text-xs text-muted-foreground">Optional: Leave blank for &quot;Price on request&quot;</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="service-experience">Experience (Years)</Label>
+                              <Input
+                                id="service-experience"
+                                type="number"
+                                step="0.5"
+                                placeholder="e.g. 2.5"
+                                value={serviceForm.experienceYears}
+                                onChange={(e) => setServiceForm({...serviceForm, experienceYears: e.target.value})}
+                                className="glass border-white/20"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Service Images */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <Camera className="w-5 h-5" />
+                            <span>Service Images</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {serviceForm.images.map((image, index) => (
+                              <div key={index} className="relative group">
+                                <Image
+                                  src={image}
+                                  alt={`Service ${index + 1}`}
+                                  width={200}
+                                  height={128}
+                                  className="w-full h-32 object-cover rounded-lg"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="sm"
+                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => removeServiceImage(index)}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            
+                            <CldUploadWidget
+                              uploadPreset="Marketplace"
+                              onSuccess={handleServiceImageUpload}
+                              onError={handleServiceImageUploadError}
+                              options={cloudinaryOptions}
+                            >
+                              {({ open }) => {
+                                if (!cloudName) {
+                                  return (
+                                    <div className="h-32 border-2 border-dashed border-red-300 rounded-lg flex flex-col items-center justify-center">
+                                      <AlertCircle className="w-6 h-6 mb-2 text-red-500" />
+                                      <span className="text-sm text-red-500">Config Error</span>
+                                    </div>
+                                  )
+                                }
+                                
+                                return (
+                                  <div
+                                    onClick={() => open()}
+                                    className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
+                                  >
+                                    <Upload className="w-6 h-6 mb-2 text-muted-foreground" />
+                                    <span className="text-sm text-muted-foreground">Add Image</span>
+                                  </div>
+                                )
+                              }}
+                            </CldUploadWidget>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Upload images of your work, certificates, or anything that showcases your service.
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      {/* Contact & Portfolio */}
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle>Contact & Portfolio</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="service-hall">Hall</Label>
+                              <Select 
+                                value={serviceForm.addressHall} 
+                                onValueChange={(value) => setServiceForm({...serviceForm, addressHall: value as KGPHalls})}
+                              >
+                                <SelectTrigger className="glass border-white/20">
+                                  <SelectValue placeholder="Select your hall (optional)" />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {HALL_OPTIONS.map(hall => (
+                                    <SelectItem key={hall.value} value={hall.value}>{hall.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="service-mobile">Mobile Number</Label>
+                              <Input
+                                id="service-mobile"
+                                placeholder="e.g. 9876543210"
+                                value={serviceForm.mobileNumber}
+                                onChange={(e) => setServiceForm({...serviceForm, mobileNumber: e.target.value})}
+                                className={`glass border-white/20 ${errors.mobileNumber ? 'border-red-500' : ''}`}
+                              />
+                              {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="service-portfolio">Portfolio URL</Label>
+                            <Input
+                              id="service-portfolio"
+                              placeholder="e.g. https://github.com/username or https://portfolio.com"
+                              value={serviceForm.portfolioUrl}
+                              onChange={(e) => setServiceForm({...serviceForm, portfolioUrl: e.target.value})}
+                              className="glass border-white/20"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full btn-gradient-primary py-3 text-lg font-semibold" 
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting 
+                          ? (isEditing ? 'Updating Service...' : 'Creating Service...') 
+                          : (isEditing ? 'Update Service' : 'Create Service Listing')
+                        }
+                      </Button>
+                    </form>
+                  </TabsContent>
+
+                  {/* Demand Form */}
+                  <TabsContent value="demand" className="mt-6">
+                    <form onSubmit={handleDemandSubmit} className="space-y-8">
+                      <Card className="glass-card">
+                        <CardHeader>
+                          <CardTitle className="flex items-center space-x-2">
+                            <MessageSquare className="w-5 h-5" />
+                            <span>What are you looking for?</span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="demand-title">Title *</Label>
+                            <Input
+                              id="demand-title"
+                              placeholder="e.g. Looking for MacBook Pro 2020 or newer"
+                              value={demandForm.title}
+                              onChange={(e) => setDemandForm({...demandForm, title: e.target.value})}
+                              className={`glass border-white/20 ${errors.title ? 'border-red-500' : ''}`}
+                            />
+                            {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="demand-description">Description</Label>
+                            <Textarea
+                              id="demand-description"
+                              placeholder="Describe what you're looking for in detail, including specifications, budget range, condition preferences, etc..."
+                              value={demandForm.description}
+                              onChange={(e) => setDemandForm({...demandForm, description: e.target.value})}
+                              className="glass border-white/20"
+                              rows={5}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="demand-product-category">Product Category</Label>
+                              <Select 
+                                value={demandForm.productCategory} 
+                                onValueChange={(value) => setDemandForm({...demandForm, productCategory: value as ProductCategory})}
+                              >
+                                <SelectTrigger className="glass border-white/20">
+                                  <SelectValue placeholder="Select if looking for a product" />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {PRODUCT_CATEGORY_OPTIONS.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="demand-service-category">Service Category</Label>
+                              <Select 
+                                value={demandForm.serviceCategory} 
+                                onValueChange={(value) => setDemandForm({...demandForm, serviceCategory: value as ServiceCategory})}
+                              >
+                                <SelectTrigger className="glass border-white/20">
+                                  <SelectValue placeholder="Select if looking for a service" />
+                                </SelectTrigger>
+                                <SelectContent className="glass">
+                                  {SERVICE_CATEGORY_OPTIONS.map(cat => (
+                                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                          {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+
+                          <div className="space-y-2">
+                            <Label htmlFor="demand-mobile">Mobile Number *</Label>
+                            <Input
+                              id="demand-mobile"
+                              placeholder="e.g. 9876543210"
+                              value={demandForm.mobileNumber}
+                              onChange={(e) => setDemandForm({...demandForm, mobileNumber: e.target.value})}
+                              className={`glass border-white/20 ${errors.mobileNumber ? 'border-red-500' : ''}`}
+                            />
+                            {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
+                          </div>
+
+                          <Alert className="border-blue-200 bg-blue-50">
+                            <Info className="h-4 w-4" />
+                            <AlertDescription className="text-blue-800">
+                              Select atleast one category to help others what you are looking for.
+                            </AlertDescription>
+                          </Alert>
+                        </CardContent>
+                      </Card>
+
+                      <Button 
+                        type="submit" 
+                        className="w-full btn-gradient-primary py-3 text-lg font-semibold" 
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting 
+                          ? (isEditing ? 'Updating Demand...' : 'Creating Demand...') 
+                          : (isEditing ? 'Update Demand' : 'Post Your Demand')
+                        }
+                      </Button>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           </div>
-
-          {/* Error Alert */}
-          {errors.submit && (
-            <Alert className="mb-6 border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-red-800">
-                {errors.submit}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Upload Error Alert */}
-          {uploadError && (
-            <Alert className="mb-6 border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-red-800">
-                {uploadError}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Tabs */}
-          <Card className="glass-card">
-            <CardContent className="p-8">
-              <Tabs value={activeTab} onValueChange={isEditing ? undefined : setActiveTab} className="w-full">
-<TabsList className="grid w-full grid-cols-3 glass mb-8">
-  <TabsTrigger 
-    value="product" 
-    className="flex items-center space-x-2 py-3"
-    disabled={isEditing ? editType !== 'product' : false}
-  >
-    <Package className="w-5 h-5" />
-    <span className="font-medium">
-      {isEditing && editType === 'product' ? 'Edit Product' : 'Sell Product'}
-    </span>
-  </TabsTrigger>
-  <TabsTrigger 
-    value="service" 
-    className="flex items-center space-x-2 py-3"
-    disabled={isEditing ? editType !== 'service' : false}
-  >
-    <Briefcase className="w-5 h-5" />
-    <span className="font-medium">
-      {isEditing && editType === 'service' ? 'Edit Service' : 'Offer Service'}
-    </span>
-  </TabsTrigger>
-  <TabsTrigger 
-    value="demand" 
-    className="flex items-center space-x-2 py-3"
-    disabled={isEditing ? editType !== 'demand' : false}
-  >
-    <MessageSquare className="w-5 h-5" />
-    <span className="font-medium">
-      {isEditing && editType === 'demand' ? 'Edit Demand' : 'Post Demand'}
-    </span>
-  </TabsTrigger>
-</TabsList>
-
-
-                {/* Product Form */}
-                <TabsContent value="product" className="mt-6">
-                  <form onSubmit={handleProductSubmit} className="space-y-8">
-                    {/* Basic Information */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Info className="w-5 h-5" />
-                          <span>Basic Information</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="product-title">Product Title *</Label>
-                            <Input
-                              id="product-title"
-                              placeholder="e.g. iPhone 13 Pro Max 256GB"
-                              value={productForm.title}
-                              onChange={(e) => setProductForm({...productForm, title: e.target.value})}
-                              className={`glass border-white/20 ${errors.title ? 'border-red-500' : ''}`}
-                            />
-                            {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="product-category">Category *</Label>
-                            <Select 
-                              value={productForm.category} 
-                              onValueChange={(value) => setProductForm({...productForm, category: value})}
-                            >
-                              <SelectTrigger className={`glass border-white/20 ${errors.category ? 'border-red-500' : ''}`}>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {productCategories.map(cat => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="product-description">Description</Label>
-                          <Textarea
-                            id="product-description"
-                            placeholder="Describe your product in detail, including features, condition, and any other relevant information..."
-                            value={productForm.description}
-                            onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                            className="glass border-white/20"
-                            rows={5}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Pricing & Condition */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle>Pricing & Condition</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="product-price">Selling Price (₹) *</Label>
-                            <Input
-                              id="product-price"
-                              type="number"
-                              placeholder="e.g. 50000"
-                              value={productForm.price}
-                              onChange={(e) => setProductForm({...productForm, price: e.target.value})}
-                              className={`glass border-white/20 ${errors.price ? 'border-red-500' : ''}`}
-                            />
-                            {errors.price && <p className="text-red-500 text-sm">{errors.price}</p>}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="product-original-price">Original Price (₹)</Label>
-                            <Input
-                              id="product-original-price"
-                              type="number"
-                              placeholder="e.g. 70000"
-                              value={productForm.originalPrice}
-                              onChange={(e) => setProductForm({...productForm, originalPrice: e.target.value})}
-                              className="glass border-white/20"
-                            />
-                            <p className="text-xs text-muted-foreground">Optional: Helps buyers see the value</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="product-type">Product Type</Label>
-                            <Select 
-                              value={productForm.productType} 
-                              onValueChange={(value) => setProductForm({...productForm, productType: value})}
-                            >
-                              <SelectTrigger className="glass border-white/20">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {productTypes.map(type => (
-                                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="product-condition">Condition (1-5)</Label>
-                            <Select 
-                              value={productForm.condition} 
-                              onValueChange={(value) => setProductForm({...productForm, condition: value})}
-                            >
-                              <SelectTrigger className="glass border-white/20">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                <SelectItem value="1">1 - Poor (Heavy wear, issues)</SelectItem>
-                                <SelectItem value="2">2 - Fair (Visible wear)</SelectItem>
-                                <SelectItem value="3">3 - Good (Light wear)</SelectItem>
-                                <SelectItem value="4">4 - Very Good (Minimal wear)</SelectItem>
-                                <SelectItem value="5">5 - Excellent (Like new)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="product-age">Age (Months)</Label>
-                            <Input
-                              id="product-age"
-                              type="number"
-                              placeholder="e.g. 12"
-                              value={productForm.ageInMonths}
-                              onChange={(e) => setProductForm({...productForm, ageInMonths: e.target.value})}
-                              className="glass border-white/20"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="product-seasonality">Seasonality</Label>
-                            <Select 
-                              value={productForm.seasonality} 
-                              onValueChange={(value) => setProductForm({...productForm, seasonality: value})}
-                            >
-                              <SelectTrigger className="glass border-white/20">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {seasonalities.map(season => (
-                                  <SelectItem key={season.value} value={season.value}>{season.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Images */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Camera className="w-5 h-5" />
-                          <span>Product Images</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {productForm.images.map((image, index) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={image}
-                                alt={`Product ${index + 1}`}
-                                className="w-full h-32 object-cover rounded-lg"
-                              />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeProductImage(index)}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          
-                          <CldUploadWidget
-  uploadPreset="Marketplace"
-  onSuccess={handleProductImageUpload}
-  onError={handleProductImageUploadError}
-  options={{
-    maxFiles: 5,
-    resourceType: "image",
-    clientAllowedFormats: ["jpg", "jpeg", "png", "gif", "webp"],
-    maxFileSize: 10000000, // 10MB
-    folder: "products",
-    cropping: false,
-    multiple: false,
-    defaultSource: "local"
-  }}
->
-
-                            {({ open }) => {
-                              if (!cloudName) {
-                                return (
-                                  <div className="h-32 border-2 border-dashed border-red-300 rounded-lg flex flex-col items-center justify-center">
-                                    <AlertCircle className="w-6 h-6 mb-2 text-red-500" />
-                                    <span className="text-sm text-red-500">Config Error</span>
-                                  </div>
-                                )
-                              }
-                              
-                              return (
-                                <div
-                                  onClick={() => open()}
-                                  className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-                                >
-                                  <Upload className="w-6 h-6 mb-2 text-muted-foreground" />
-                                  <span className="text-sm text-muted-foreground">Add Image</span>
-                                </div>
-                              )
-                            }}
-                          </CldUploadWidget>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Upload up to 5 images (JPG, PNG, GIF, WebP). Max 10MB per image. First image will be the main display image.
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    {/* Contact & Location */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle>Contact & Location</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="product-hall">Hall *</Label>
-                            <Select 
-                              value={productForm.addressHall} 
-                              onValueChange={(value) => setProductForm({...productForm, addressHall: value})}
-                            >
-                              <SelectTrigger className={`glass border-white/20 ${errors.addressHall ? 'border-red-500' : ''}`}>
-                                <SelectValue placeholder="Select your hall" />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {halls.map(hall => (
-                                  <SelectItem key={hall} value={hall}>{hall}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {errors.addressHall && <p className="text-red-500 text-sm">{errors.addressHall}</p>}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="product-mobile">Mobile Number *</Label>
-                            <Input
-                              id="product-mobile"
-                              placeholder="e.g. 9876543210"
-                              value={productForm.mobileNumber}
-                              onChange={(e) => setProductForm({...productForm, mobileNumber: e.target.value})}
-                              className={`glass border-white/20 ${errors.mobileNumber ? 'border-red-500' : ''}`}
-                            />
-                            {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="product-ecommerce">E-commerce Link</Label>
-                          <Input
-                            id="product-ecommerce"
-                            placeholder="e.g. https://amazon.in/product-link"
-                            value={productForm.ecommerceLink}
-                            onChange={(e) => setProductForm({...productForm, ecommerceLink: e.target.value})}
-                            className="glass border-white/20"
-                          />
-                          <p className="text-xs text-muted-foreground">Optional: Link to original product page for reference</p>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full btn-gradient-primary py-3 text-lg font-semibold" 
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting 
-                        ? (isEditing ? 'Updating Product...' : 'Creating Product...') 
-                        : (isEditing ? 'Update Product' : 'Create Product Listing')
-                      }
-                    </Button>
-                  </form>
-                </TabsContent>
-
-                {/* Service Form */}
-                <TabsContent value="service" className="mt-6">
-                  <form onSubmit={handleServiceSubmit} className="space-y-8">
-                    {/* Basic Information */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Info className="w-5 h-5" />
-                          <span>Service Information</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="service-title">Service Title *</Label>
-                            <Input
-                              id="service-title"
-                              placeholder="e.g. Python Programming Tutoring"
-                              value={serviceForm.title}
-                              onChange={(e) => setServiceForm({...serviceForm, title: e.target.value})}
-                              className={`glass border-white/20 ${errors.title ? 'border-red-500' : ''}`}
-                            />
-                            {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="service-category">Category *</Label>
-                            <Select 
-                              value={serviceForm.category} 
-                              onValueChange={(value) => setServiceForm({...serviceForm, category: value})}
-                            >
-                              <SelectTrigger className={`glass border-white/20 ${errors.category ? 'border-red-500' : ''}`}>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {serviceCategories.map(cat => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="service-description">Service Description</Label>
-                          <Textarea
-                            id="service-description"
-                            placeholder="Describe your service, experience, what you offer, and any other relevant details..."
-                            value={serviceForm.description}
-                            onChange={(e) => setServiceForm({...serviceForm, description: e.target.value})}
-                            className="glass border-white/20"
-                            rows={5}
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Pricing & Experience */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle>Pricing & Experience</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="service-min-price">Minimum Price (₹) *</Label>
-                            <Input
-                              id="service-min-price"
-                              type="number"
-                              placeholder="e.g. 500"
-                              value={serviceForm.minPrice}
-                              onChange={(e) => setServiceForm({...serviceForm, minPrice: e.target.value})}
-                              className={`glass border-white/20 ${errors.minPrice ? 'border-red-500' : ''}`}
-                            />
-                            {errors.minPrice && <p className="text-red-500 text-sm">{errors.minPrice}</p>}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="service-max-price">Maximum Price (₹)</Label>
-                            <Input
-                              id="service-max-price"
-                              type="number"
-                              placeholder="e.g. 2000"
-                              value={serviceForm.maxPrice}
-                              onChange={(e) => setServiceForm({...serviceForm, maxPrice: e.target.value})}
-                              className="glass border-white/20"
-                            />
-                            <p className="text-xs text-muted-foreground">Optional: Leave blank for "Price on request"</p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="service-experience">Experience (Years)</Label>
-                            <Input
-                              id="service-experience"
-                              type="number"
-                              step="0.5"
-                              placeholder="e.g. 2.5"
-                              value={serviceForm.experienceYears}
-                              onChange={(e) => setServiceForm({...serviceForm, experienceYears: e.target.value})}
-                              className="glass border-white/20"
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Service Images */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <Camera className="w-5 h-5" />
-                          <span>Service Images</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {serviceForm.images.map((image, index) => (
-                            <div key={index} className="relative group">
-                              <img
-                                src={image}
-                                alt={`Service ${index + 1}`}
-                                className="w-full h-32 object-cover rounded-lg"
-                              />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeServiceImage(index)}
-                              >
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          ))}
-                          
-<CldUploadWidget
-  uploadPreset="Marketplace"
-  onSuccess={handleServiceImageUpload}
-  onError={handleServiceImageUploadError}
-  options={{
-    maxFiles: 5,
-    resourceType: "image",
-    clientAllowedFormats: ["jpg", "jpeg", "png", "gif", "webp"],
-    maxFileSize: 10000000, // 10MB
-    folder: "products",
-    cropping: false,
-    multiple: false,
-    defaultSource: "local"
-  }}
->
-
-                            {({ open }) => {
-                              if (!cloudName) {
-                                return (
-                                  <div className="h-32 border-2 border-dashed border-red-300 rounded-lg flex flex-col items-center justify-center">
-                                    <AlertCircle className="w-6 h-6 mb-2 text-red-500" />
-                                    <span className="text-sm text-red-500">Config Error</span>
-                                  </div>
-                                )
-                              }
-                              
-                              return (
-                                <div
-                                  onClick={() => open()}
-                                  className="h-32 border-2 border-dashed border-white/20 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors"
-                                >
-                                  <Upload className="w-6 h-6 mb-2 text-muted-foreground" />
-                                  <span className="text-sm text-muted-foreground">Add Image</span>
-                                </div>
-                              )
-                            }}
-                          </CldUploadWidget>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Upload images of your work, certificates, or anything that showcases your service.
-                        </p>
-                      </CardContent>
-                    </Card>
-
-                    {/* Contact & Portfolio */}
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle>Contact & Portfolio</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="service-hall">Hall</Label>
-                            <Select 
-                              value={serviceForm.addressHall} 
-                              onValueChange={(value) => setServiceForm({...serviceForm, addressHall: value})}
-                            >
-                              <SelectTrigger className="glass border-white/20">
-                                <SelectValue placeholder="Select your hall (optional)" />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {halls.map(hall => (
-                                  <SelectItem key={hall} value={hall}>{hall}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="service-mobile">Mobile Number</Label>
-                            <Input
-                              id="service-mobile"
-                              placeholder="e.g. 9876543210"
-                              value={serviceForm.mobileNumber}
-                              onChange={(e) => setServiceForm({...serviceForm, mobileNumber: e.target.value})}
-                              className={`glass border-white/20 ${errors.mobileNumber ? 'border-red-500' : ''}`}
-                            />
-                            {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="service-portfolio">Portfolio URL</Label>
-                          <Input
-                            id="service-portfolio"
-                            placeholder="e.g. https://github.com/username or https://portfolio.com"
-                            value={serviceForm.portfolioUrl}
-                            onChange={(e) => setServiceForm({...serviceForm, portfolioUrl: e.target.value})}
-                            className="glass border-white/20"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full btn-gradient-primary py-3 text-lg font-semibold" 
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting 
-                        ? (isEditing ? 'Updating Service...' : 'Creating Service...') 
-                        : (isEditing ? 'Update Service' : 'Create Service Listing')
-                      }
-                    </Button>
-                  </form>
-                </TabsContent>
-
-                {/* Demand Form */}
-                <TabsContent value="demand" className="mt-6">
-                  <form onSubmit={handleDemandSubmit} className="space-y-8">
-                    <Card className="glass-card">
-                      <CardHeader>
-                        <CardTitle className="flex items-center space-x-2">
-                          <MessageSquare className="w-5 h-5" />
-                          <span>What are you looking for?</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="demand-title">Title *</Label>
-                          <Input
-                            id="demand-title"
-                            placeholder="e.g. Looking for MacBook Pro 2020 or newer"
-                            value={demandForm.title}
-                            onChange={(e) => setDemandForm({...demandForm, title: e.target.value})}
-                            className={`glass border-white/20 ${errors.title ? 'border-red-500' : ''}`}
-                          />
-                          {errors.title && <p className="text-red-500 text-sm">{errors.title}</p>}
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="demand-description">Description</Label>
-                          <Textarea
-                            id="demand-description"
-                            placeholder="Describe what you're looking for in detail, including specifications, budget range, condition preferences, etc..."
-                            value={demandForm.description}
-                            onChange={(e) => setDemandForm({...demandForm, description: e.target.value})}
-                            className="glass border-white/20"
-                            rows={5}
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="demand-product-category">Product Category</Label>
-                            <Select 
-                              value={demandForm.productCategory} 
-                              onValueChange={(value) => setDemandForm({...demandForm, productCategory: value})}
-                            >
-                              <SelectTrigger className="glass border-white/20">
-                                <SelectValue placeholder="Select if looking for a product" />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {productCategories.map(cat => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="demand-service-category">Service Category</Label>
-                            <Select 
-                              value={demandForm.serviceCategory} 
-                              onValueChange={(value) => setDemandForm({...demandForm, serviceCategory: value})}
-                            >
-                              <SelectTrigger className="glass border-white/20">
-                                <SelectValue placeholder="Select if looking for a service" />
-                              </SelectTrigger>
-                              <SelectContent className="glass">
-                                {serviceCategories.map(cat => (
-                                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
-
-                        <div className="space-y-2">
-                          <Label htmlFor="demand-mobile">Mobile Number *</Label>
-                          <Input
-                            id="demand-mobile"
-                            placeholder="e.g. 9876543210"
-                            value={demandForm.mobileNumber}
-                            onChange={(e) => setDemandForm({...demandForm, mobileNumber: e.target.value})}
-                            className={`glass border-white/20 ${errors.mobileNumber ? 'border-red-500' : ''}`}
-                          />
-                          {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
-                        </div>
-
-                        <Alert className="border-blue-200 bg-blue-50">
-                          <Info className="h-4 w-4" />
-                          <AlertDescription className="text-blue-800">
-                            Select at least one category (Product or Service) to help others understand what you're looking for.
-                          </AlertDescription>
-                        </Alert>
-                      </CardContent>
-                    </Card>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full btn-gradient-primary py-3 text-lg font-semibold" 
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting 
-                        ? (isEditing ? 'Updating Demand...' : 'Creating Demand...') 
-                        : (isEditing ? 'Update Demand' : 'Post Your Demand')
-                      }
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
         </div>
-      </div>
+      </Suspense>
     </MainLayout>
   )
 }

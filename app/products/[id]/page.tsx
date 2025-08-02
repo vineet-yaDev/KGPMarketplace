@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Edit, Trash2, CheckCircle, AlertTriangle, Package, Briefcase, Maximize2, ZoomIn, ZoomOut, X, ExternalLink, FileText, Clock } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Edit, Trash2, CheckCircle, AlertTriangle, Package, Maximize2, ZoomIn, ZoomOut, X, ExternalLink, FileText, Clock } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Product, Service, ProductDetailResponse } from '@/lib/types'
+import { CONDITION_TEXT_MAP, PRODUCT_TYPE_TEXT_MAP, SEASONALITY_TEXT_MAP } from '@/lib/constants'
 import { useSession } from 'next-auth/react'
 
 export default function ProductDetailPage() {
@@ -32,25 +34,7 @@ export default function ProductDetailPage() {
   // Check if current user owns this product
   const isOwner = session?.user?.email === product?.owner?.email
 
-  useEffect(() => {
-    if (params.id) {
-      fetchProductDetails()
-    }
-  }, [params.id])
-
-  // Close fullscreen on Escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) {
-        setIsFullscreen(false)
-        setZoom(1)
-      }
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isFullscreen])
-
-  const fetchProductDetails = async () => {
+  const fetchProductDetails = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/products/${params.id}`)
@@ -68,7 +52,25 @@ export default function ProductDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (params.id) {
+      fetchProductDetails()
+    }
+  }, [params.id, fetchProductDetails])
+
+  // Close fullscreen on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+        setZoom(1)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [isFullscreen])
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-IN', {
@@ -88,36 +90,15 @@ export default function ProductDetailPage() {
   }
 
   const getConditionText = (condition: number): string => {
-    const conditions: Record<number, string> = {
-      1: 'Poor',
-      2: 'Fair', 
-      3: 'Good',
-      4: 'Very Good',
-      5: 'Excellent'
-    }
-    return conditions[condition] || 'Unknown'
+    return CONDITION_TEXT_MAP[condition] || 'Unknown'
   }
 
   const getProductTypeText = (type: string): string => {
-    const types: Record<string, string> = {
-      'NEW': 'Brand New',
-      'USED': 'Used',
-      'RENT': 'For Rent',
-      'SERVICE': 'Service'
-    }
-    return types[type] || type
+    return PRODUCT_TYPE_TEXT_MAP[type as keyof typeof PRODUCT_TYPE_TEXT_MAP] || type
   }
 
   const getSeasonalityText = (seasonality: string): string => {
-    const seasonalities: Record<string, string> = {
-      'NONE': 'Year Round',
-      'HALL_DAYS': 'Hall Days',
-      'PLACEMENTS': 'Placement Season',
-      'SEMESTER_END': 'Semester End',
-      'FRESHERS': 'Freshers',
-      'FESTIVE': 'Festive Season'
-    }
-    return seasonalities[seasonality] || seasonality
+    return SEASONALITY_TEXT_MAP[seasonality as keyof typeof SEASONALITY_TEXT_MAP] || seasonality
   }
 
   const nextImage = () => {
@@ -211,7 +192,7 @@ export default function ProductDetailPage() {
         <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">Product not found</h2>
-            <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
+            <p className="text-muted-foreground mb-4">The product you&apos;re looking for doesn&apos;t exist.</p>
             <Button onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -279,7 +260,7 @@ export default function ProductDetailPage() {
                         Delete Product
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{product.title}"? This action cannot be undone.
+                        Are you sure you want to delete &ldquo;{product.title}&rdquo;? This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -318,10 +299,13 @@ export default function ProductDetailPage() {
               <div className="relative aspect-square overflow-hidden rounded-xl glass-card bg-white/5">
                 {product.images && product.images.length > 0 ? (
                   <>
-                    <img
+                    <Image
                       src={product.images[selectedImageIndex]}
                       alt={product.title}
-                      className="w-full h-full object-contain"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-contain"
+                      priority
                     />
                     {product.images.length > 1 && (
                       <>
@@ -329,7 +313,7 @@ export default function ProductDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={prevImage}
-                          className="absolute left-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
@@ -337,7 +321,7 @@ export default function ProductDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={nextImage}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -348,7 +332,7 @@ export default function ProductDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute bottom-2 right-2 glass hover:bg-white/20"
+                      className="absolute bottom-2 right-2 glass hover:bg-white/20 z-10"
                       onClick={toggleFullscreen}
                       title="View Fullscreen"
                     >
@@ -375,11 +359,15 @@ export default function ProductDetailPage() {
                           : 'border-transparent'
                       }`}
                     >
-                      <img
-                        src={image}
-                        alt={`${product.title} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={image}
+                          alt={`${product.title} ${index + 1}`}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -473,11 +461,15 @@ export default function ProductDetailPage() {
                     <FileText className="w-5 h-5 mr-2" />
                     Invoice/Receipt
                   </h3>
-                  <img
-                    src={product.invoiceImageUrl}
-                    alt="Invoice"
-                    className="max-w-full max-h-60 object-contain rounded border glass"
-                  />
+                  <div className="relative max-w-full max-h-60">
+                    <Image
+                      src={product.invoiceImageUrl}
+                      alt="Invoice"
+                      width={400}
+                      height={240}
+                      className="object-contain rounded border glass"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -570,15 +562,15 @@ export default function ProductDetailPage() {
         className="relative w-full h-full flex items-center justify-center overflow-hidden"
         style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
       >
-        <img
-          src={product.images?.[selectedImageIndex]}
+        <Image
+          src={product.images?.[selectedImageIndex] || ''}
           alt={product.title}
-          className="max-w-full max-h-full object-contain"
+          fill
+          sizes="100vw"
+          className="object-contain"
           style={{ 
             transform: `scale(${zoom})`, 
             transition: 'transform 0.3s ease',
-            width: 'auto',
-            height: 'auto'
           }}
           draggable={false}
         />
@@ -658,10 +650,12 @@ export default function ProductDetailPage() {
                       <Card className="glass-card hover-lift h-full">
                         <div className="aspect-video relative overflow-hidden rounded-t-lg">
                           {similarProduct.images && similarProduct.images.length > 0 ? (
-                            <img
+                            <Image
                               src={similarProduct.images[0]}
                               alt={similarProduct.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                              fill
+                              sizes="256px"
+                              className="object-cover group-hover:scale-110 transition-smooth"
                             />
                           ) : (
                             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -710,10 +704,12 @@ export default function ProductDetailPage() {
                       <Card className="glass-card hover-lift h-full">
                         <div className="aspect-video relative overflow-hidden rounded-t-lg">
                           {service.images && service.images.length > 0 ? (
-                            <img
+                            <Image
                               src={service.images[0]}
                               alt={service.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                              fill
+                              sizes="256px"
+                              className="object-cover group-hover:scale-110 transition-smooth"
                             />
                           ) : (
                             <div className="w-full h-full bg-muted flex items-center justify-center">

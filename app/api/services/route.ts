@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateSession } from '@/lib/auth-helpers'
 import { getAllServices, createService } from '@/lib/db'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const services = await getAllServices()
     return NextResponse.json({ services })

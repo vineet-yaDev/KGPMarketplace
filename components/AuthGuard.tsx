@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { useAuth } from '@/contexts/AuthContext'
 
 interface AuthGuardProps {
@@ -10,13 +10,13 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const { status } = useAuth()
-  const router = useRouter()
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.push('/login')
+      // Redirect directly to Google sign-in instead of /login page
+      signIn('google', { callbackUrl: window.location.href })
     }
-  }, [status, router])
+  }, [status])
 
   if (status === 'loading') {
     return (
@@ -30,7 +30,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   if (status === 'unauthenticated') {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Redirecting to sign in...</p>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>

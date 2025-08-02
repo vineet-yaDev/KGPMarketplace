@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserById } from '@/lib/db'
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const {id} = await params

@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { Filter, TrendingDown } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 const quickFilters = [
   { label: 'Free', price: 0, color: 'bg-green-500'},
   { label: '<₹100', price: 100, color: 'bg-blue-500'},

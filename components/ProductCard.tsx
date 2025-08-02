@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { MapPin, Clock, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import Image from 'next/image'
 
 interface Product {
   id: number
@@ -59,10 +60,13 @@ export default function ProductCard({ product, compact = false }: ProductCardPro
     >
       {/* Image */}
       <div className={`relative ${compact ? 'h-40' : 'h-56'} bg-muted rounded-lg overflow-hidden mb-3`}>
-        <img
+        <Image
           src={product.image}
           alt={product.title}
-          className="w-full h-full object-cover"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover"
+          priority={false}
         />
         
         {/* Price Badge */}

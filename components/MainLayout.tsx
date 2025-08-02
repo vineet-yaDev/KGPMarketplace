@@ -39,13 +39,12 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { isAuthenticated, user } = useAuth()
-  const { theme, setTheme } = useTheme()
+  const { setTheme } = useTheme()
   const router = useRouter()
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  console.log("user id " , user?.id)
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     if (searchQuery.trim()) {
@@ -53,12 +52,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
     }
   }
 
-  const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/' })
-  }
-
+  // Updated sign out handler to redirect to home page
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' })
+    router.push('/') // Explicitly redirect to home page
   }
 
   const isActivePath = (path: string) => {
@@ -71,10 +68,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { href: '/demand', label: 'Demand', icon: MessageSquare },
   ]
 
-const profileMenuItems = [
-  { href: user?.id ? `/user/${user?.id}` : '/login', label: 'My Listings', icon: Package },
-  { href: '/profile', label: 'Profile', icon: Settings },
-]
+  // Updated profile menu items logic - only show if authenticated
+  const profileMenuItems = isAuthenticated ? [
+    { href: `/user/${user?.id}`, label: 'My Listings', icon: Package },
+    { href: '/profile', label: 'Profile', icon: Settings },
+  ] : []
 
   return (
     <div className="min-h-screen bg-gradient-surface">
@@ -126,12 +124,22 @@ const profileMenuItems = [
             {/* Right Section */}
             <div className="flex items-center space-x-3">
               {/* ADD Button */}
-              <Link href="/add">
-                <Button className="btn-gradient-primary text-sm font-medium">
+              {isAuthenticated ? (
+                <Link href="/add">
+                  <Button className="btn-gradient-primary text-sm font-medium">
+                    <Plus className="w-4 h-4 mr-1" />
+                    <span className="hidden sm:inline">Add</span>
+                  </Button>
+                </Link>
+              ) : (
+                <Button 
+                  onClick={() => signIn('google', { callbackUrl: '/add' })}
+                  className="btn-gradient-primary text-sm font-medium"
+                >
                   <Plus className="w-4 h-4 mr-1" />
                   <span className="hidden sm:inline">Add</span>
                 </Button>
-              </Link>
+              )}
 
               {/* Theme Toggle */}
               <DropdownMenu>
@@ -185,6 +193,7 @@ const profileMenuItems = [
                       </div>
                     </div>
                     <DropdownMenuSeparator />
+                    {/* Only show profile menu items if authenticated */}
                     {profileMenuItems.map(({ href, label, icon: Icon }) => (
                       <DropdownMenuItem key={href} asChild>
                         <Link href={href} className="w-full">
@@ -201,8 +210,9 @@ const profileMenuItems = [
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
+                // Login button for unauthenticated users - direct Google sign in
                 <Button 
-                  onClick={handleGoogleSignIn}
+                  onClick={() => signIn('google', { callbackUrl: '/' })}
                   variant="outline" 
                   size="sm" 
                   className="glass border-white/20 hover:bg-white/10"
@@ -261,7 +271,9 @@ const profileMenuItems = [
                   <span>{label}</span>
                 </Link>
               ))}
-              {isAuthenticated && (
+              
+              {/* Mobile menu authentication logic */}
+              {isAuthenticated ? (
                 <>
                   <div className="my-4 border-t border-white/20" />
                   {profileMenuItems.map(({ href, label, icon: Icon }) => (
@@ -276,11 +288,28 @@ const profileMenuItems = [
                     </Link>
                   ))}
                   <button
-                    onClick={handleSignOut}
+                    onClick={() => {
+                      handleSignOut()
+                      setIsMobileMenuOpen(false)
+                    }}
                     className="w-full flex items-center space-x-2 text-sm font-medium hover:text-primary p-2 rounded-lg hover:bg-white/10 transition-colors text-left"
                   >
                     <LogOut className="w-4 h-4" />
                     <span>Sign out</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="my-4 border-t border-white/20" />
+                  <button
+                    onClick={() => {
+                      signIn('google', { callbackUrl: '/' })
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="w-full flex items-center space-x-2 text-sm font-medium hover:text-primary p-2 rounded-lg hover:bg-white/10 transition-colors text-left"
+                  >
+                    <User className="w-4 h-4" />
+                    <span>Login with Google</span>
                   </button>
                 </>
               )}

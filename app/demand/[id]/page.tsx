@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'  // Added useCallback
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Phone, Edit, Trash2, AlertTriangle, Package, User } from 'lucide-react'
+import { ArrowLeft, Calendar, Phone, Edit, Trash2, AlertTriangle, User } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
@@ -24,13 +23,8 @@ export default function DemandDetailPage() {
   // Check if current user owns this demand
   const isOwner = session?.user?.email === demand?.owner?.email
 
-  useEffect(() => {
-    if (params.id) {
-      fetchDemandDetails()
-    }
-  }, [params.id])
-
-  const fetchDemandDetails = async () => {
+  // Make fetchDemandDetails a useCallback function
+  const fetchDemandDetails = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/demands/${params.id}`)
@@ -46,7 +40,13 @@ export default function DemandDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id]) // Include params.id in the dependency array
+
+  useEffect(() => {
+    if (params.id) {
+      fetchDemandDetails()
+    }
+  }, [params.id, fetchDemandDetails]) // Add fetchDemandDetails to dependency array
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString)
@@ -98,7 +98,7 @@ export default function DemandDetailPage() {
         <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">Demand not found</h2>
-            <p className="text-muted-foreground mb-4">The demand you're looking for doesn't exist.</p>
+            <p className="text-muted-foreground mb-4">The demand you&apos;re looking for doesn&apos;t exist.</p>
             <Button onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -155,7 +155,7 @@ export default function DemandDetailPage() {
                         Delete Demand
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{demand.title}"? This action cannot be undone.
+                        Are you sure you want to delete &ldquo;{demand.title}&rdquo;? This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

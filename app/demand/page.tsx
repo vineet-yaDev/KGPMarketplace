@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, MessageSquare, Calendar, User, SlidersHorizontal, Plus, Filter, X } from 'lucide-react'
+import { Search, MessageSquare, Plus, Filter, X } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,32 +10,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-
-const categories = [
-  'All Categories',
-  // Product categories
-  'ELECTRONICS',
-  'BOOKS', 
-  'CLOTHING',
-  'FURNITURE',
-  'SPORTS',
-  'VEHICLES',
-  'FOOD',
-  'STATIONERY',
-  // Service categories
-  'TUTORING',
-  'REPAIR',
-  'DELIVERY',
-  'CLEANING',
-  'PHOTOGRAPHY',
-  'CODING',
-  'DESIGN',
-  'CONSULTING',
-  'OTHER'
-]
+import { Demand} from '@/lib/types'  // Import the Demand type
+import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from '@/lib/constants'  // Import the categories constants
 
 export default function DemandsPage() {
-  const [demands, setDemands] = useState([])
+  const [demands, setDemands] = useState<Demand[]>([])  // Use Demand type here
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
@@ -64,7 +43,7 @@ export default function DemandsPage() {
     }
   }
 
-  const filteredDemands = demands.filter((demand: any) => {
+  const filteredDemands = demands.filter((demand: Demand) => {  // Use Demand type here
     const matchesSearch = demand.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (demand.description && demand.description.toLowerCase().includes(searchQuery.toLowerCase()))
     
@@ -74,7 +53,7 @@ export default function DemandsPage() {
     return matchesSearch && matchesCategory
   })
 
-  const sortedDemands = [...filteredDemands].sort((a: any, b: any) => {
+  const sortedDemands = [...filteredDemands].sort((a: Demand, b: Demand) => {  // Use Demand type here
     switch (sortBy) {
       case 'newest':
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -84,16 +63,6 @@ export default function DemandsPage() {
         return 0
     }
   })
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -208,7 +177,10 @@ export default function DemandsPage() {
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent className="glass-card rounded-lg border-white/20">
-                      {categories.map(category => (
+                      <SelectItem key="All Categories" value="All Categories" className="hover:bg-white/10">
+                        All Categories
+                      </SelectItem>
+                      {[...PRODUCT_CATEGORIES, ...SERVICE_CATEGORIES].map(category => (
                         <SelectItem key={category} value={category} className="hover:bg-white/10">
                           {category}
                         </SelectItem>
@@ -257,7 +229,7 @@ export default function DemandsPage() {
 
           {/* Demands Grid */}
           <div className="grid grid-cols-1 gap-6">
-            {sortedDemands.map((demand: any) => (
+            {sortedDemands.map((demand: Demand) => (  // Use Demand type here
               <Link key={demand.id} href={`/demand/${demand.id}`} className="group">
                 <Card className="glass-card hover-lift transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 border-white/10 rounded-xl overflow-hidden">
                   <CardContent className="p-0">

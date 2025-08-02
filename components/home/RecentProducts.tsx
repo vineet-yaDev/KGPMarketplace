@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image' // Add this import
 import {
   Package,
   Smartphone,
@@ -16,7 +17,6 @@ import {
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Product } from '@/lib/types'
 
 const productCategoryIcons: Record<string, React.ReactNode> = {
@@ -74,11 +74,15 @@ export default function RecentProducts() {
             >
               <Card className="glass-card hover-lift shadow-lg transition-shadow overflow-hidden">
                 {product.images.length > 0 ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.title}
-                    className="w-full h-48 object-cover rounded-t-md"
-                  />
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={product.images[0]}
+                      alt={product.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      className="object-cover rounded-t-md"
+                    />
+                  </div>
                 ) : (
                   <div className="flex justify-center items-center w-full h-48 bg-gray-100 rounded-t-md text-gray-400">
                     {productCategoryIcons[product.category?.toUpperCase() || 'OTHER'] || (

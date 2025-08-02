@@ -3,11 +3,12 @@
 
 import { signIn, getSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { ShoppingBag, AlertCircle } from 'lucide-react'
 
-export default function LoginPage() {
+// Create a separate component for the login content
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isLoading, setIsLoading] = useState(false)
@@ -38,6 +39,7 @@ export default function LoginPage() {
   }, [router, searchParams])
 
   const handleGoogleSignIn = async () => {
+    console.log('Initiating Google sign in...')
     setIsLoading(true)
     setError('')
     
@@ -102,5 +104,35 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function LoginFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-surface flex items-center justify-center p-4">
+      <div className="glass-card max-w-md w-full p-8 text-center">
+        <div className="flex items-center justify-center space-x-2 mb-8">
+          <div className="w-12 h-12 bg-gradient-primary rounded-xl flex items-center justify-center">
+            <ShoppingBag className="w-7 h-7 text-white" />
+          </div>
+          <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            KGP Marketplace
+          </span>
+        </div>
+        
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main page component with Suspense wrapper
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginContent />
+    </Suspense>
   )
 }

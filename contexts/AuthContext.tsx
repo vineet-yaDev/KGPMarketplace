@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, ReactNode, useEffect } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession, signOut, signIn } from 'next-auth/react'
 import { Session } from 'next-auth'
 import { useRouter } from 'next/navigation'
 
@@ -28,21 +28,23 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Monitor for session errors and handle them
   useEffect(() => {
-    if (status === 'unauthenticated' && window.location.pathname !== '/login') {
+    if (status === 'unauthenticated' && window.location.pathname !== '/') {
       const wasAuthenticated = localStorage.getItem('was-authenticated')
       if (wasAuthenticated) {
-        console.log('Session expired, redirecting to login')
+        console.log('Session expired, redirecting to Google sign in')
         localStorage.removeItem('was-authenticated')
-        signOut({ callbackUrl: '/login' })
+        // Redirect directly to Google sign-in instead of /login page
+        signIn('google', { callbackUrl: '/' })
       }
     } else if (status === 'authenticated') {
       localStorage.setItem('was-authenticated', 'true')
     }
   }, [status, router])
 
+  // Updated signOutUser to redirect to home page
   const signOutUser = () => {
     localStorage.removeItem('was-authenticated')
-    signOut({ callbackUrl: '/login' })
+    signOut({ callbackUrl: '/' })
   }
 
   const value = {

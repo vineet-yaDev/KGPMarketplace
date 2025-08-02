@@ -1,6 +1,13 @@
 import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import Providers from './providers'
+
+// Initialize Inter font using Next.js font optimization
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: 'KGP Marketplace - Buy, Sell & Exchange at IIT Kharagpur',
@@ -14,14 +21,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body style={{ fontFamily: 'Inter, sans-serif' }} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <body className={`${inter.className} antialiased`} suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>

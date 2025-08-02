@@ -1,26 +1,5 @@
 'use client'
 
-export function useUserSync() {
-  const { isAuthenticated, user } = useAuth()
-
-  useEffect(() => {
-    if (isAuthenticated && user?.email) {
-      // Sync user to our database in the background
-      fetch('/api/user/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          console.log('User synced to database')
-        }
-      })
-      .catch(err => console.log('User sync failed (non-critical):', err))
-    }
-  }, [isAuthenticated, user])
-}
-
 import { useState, useEffect } from 'react'
 import MainLayout from '@/components/MainLayout'
 import HeroCarousel from '@/components/home/HeroCarousel'
@@ -30,24 +9,20 @@ import RecentServices from '@/components/home/RecentServices'
 import LiveDemands from '@/components/home/LiveDemands'
 import QuickFilters from '@/components/home/QuickFilters'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useUserSync } from '@/hooks/useUserSync'
 
 export default function HomePage() {
   const { status } = useAuth()
-  const router = useRouter()
   const [demands, setDemands] = useState([])
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
+  // Only sync user data if authenticated
+  useUserSync()
 
-  // Fetch real demands data
+  // Fetch real demands data (available to all users)
   useEffect(() => {
     async function fetchDemands() {
       try {
-        const res = await fetch('/api/demands?limit=10') // or your demands endpoint
+        const res = await fetch('/api/demands?limit=10')
         const json = await res.json()
         setDemands(json.demands || [])
       } catch (e) {
@@ -57,6 +32,7 @@ export default function HomePage() {
     fetchDemands()
   }, [])
 
+  // Show loading only while checking authentication status
   if (status === 'loading') {
     return (
       <MainLayout>
@@ -70,8 +46,7 @@ export default function HomePage() {
     )
   }
 
-  if (status === 'unauthenticated') return null
-
+  // Show homepage for both authenticated and unauthenticated users
   return (
     <MainLayout>
       <div>

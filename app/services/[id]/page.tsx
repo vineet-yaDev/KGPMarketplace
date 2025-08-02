@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Star, Clock, ExternalLink, Edit, Trash2, AlertTriangle, Briefcase, Package, Maximize2, ZoomIn, ZoomOut, X, FileText } from 'lucide-react'
+import Image from 'next/image' // Import Image component
+import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Star, Clock, ExternalLink, Edit, Trash2, AlertTriangle, Briefcase, Maximize2, ZoomIn, ZoomOut, X } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,7 +12,9 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Service, Product, ServiceDetailResponse } from '@/lib/types'
+import { SERVICE_CATEGORY_TEXT_MAP } from '@/lib/constants' // Import from constants
 import { useSession } from 'next-auth/react'
+
 
 export default function ServiceDetailPage() {
   const params = useParams()
@@ -28,53 +31,12 @@ export default function ServiceDetailPage() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [zoom, setZoom] = useState(1)
 
+
   // Check if current user owns this service
   const isOwner = session?.user?.email === service?.owner?.email
 
-  useEffect(() => {
-    if (params.id) {
-      fetchServiceDetails()
-    }
-  }, [params.id])
-
-  // Enhanced keyboard navigation
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (!isFullscreen) return
-      
-      switch(e.key) {
-        case 'Escape':
-          setIsFullscreen(false)
-          setZoom(1)
-          break
-        case 'ArrowLeft':
-          if (service?.images && service.images.length > 1) {
-            prevImage()
-          }
-          break
-        case 'ArrowRight':
-          if (service?.images && service.images.length > 1) {
-            nextImage()
-          }
-          break
-        case '+':
-        case '=':
-          zoomIn()
-          break
-        case '-':
-          zoomOut()
-          break
-        case '0':
-          setZoom(1)
-          break
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyPress)
-    return () => document.removeEventListener('keydown', handleKeyPress)
-  }, [isFullscreen, service])
-
-  const fetchServiceDetails = async () => {
+  // Wrap fetchServiceDetails in useCallback
+  const fetchServiceDetails = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/services/${params.id}`)
@@ -92,7 +54,15 @@ export default function ServiceDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id]) // Dependency: params.id
+
+
+  useEffect(() => {
+    if (params.id) {
+      fetchServiceDetails()
+    }
+  }, [params.id, fetchServiceDetails]) // Add fetchServiceDetails to dependency array
+
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-IN', {
@@ -101,6 +71,7 @@ export default function ServiceDetailPage() {
       maximumFractionDigits: 0
     }).format(amount)
   }
+
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString)
@@ -111,30 +82,69 @@ export default function ServiceDetailPage() {
     })
   }
 
-  const nextImage = () => {
+  // Wrap nextImage and prevImage in useCallback
+  const nextImage = useCallback(() => {
     if (service?.images && service.images.length > 1) {
       setSelectedImageIndex((prev) => 
         prev === service.images.length - 1 ? 0 : prev + 1
       )
     }
-  }
+  }, [service?.images])
 
-  const prevImage = () => {
+
+  const prevImage = useCallback(() => {
     if (service?.images && service.images.length > 1) {
       setSelectedImageIndex((prev) => 
         prev === 0 ? service.images.length - 1 : prev - 1
       )
     }
-  }
+  }, [service?.images])
+
+  // Enhanced keyboard navigation (Dependencies are now handled by useCallback)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (!isFullscreen) return
+      
+      switch(e.key) {
+        case 'Escape':
+          setIsFullscreen(false)
+          setZoom(1)
+          break
+        case 'ArrowLeft':
+          nextImage() // Call the memoized function
+          break
+        case 'ArrowRight':
+          prevImage() // Call the memoized function
+          break
+        case '+':
+        case '=':
+          zoomIn()
+          break
+        case '-':
+          zoomOut()
+          break
+        case '0':
+          setZoom(1)
+          break
+      }
+    }
+
+
+    document.addEventListener('keydown', handleKeyPress)
+    return () => document.removeEventListener('keydown', handleKeyPress)
+  }, [isFullscreen, nextImage, prevImage]) // Now nextImage and prevImage are stable functions
+
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen)
     setZoom(1) // reset zoom when toggling
   }
 
+
   // Enhanced zoom functions
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3))
   const zoomOut = () => setZoom(prev => Math.max(prev - 0.25, 0.5))
+
 
   const handleDeleteService = async () => {
     try {
@@ -142,6 +152,7 @@ export default function ServiceDetailPage() {
       const response = await fetch(`/api/services/${params.id}`, {
         method: 'DELETE'
       })
+
 
       if (response.ok) {
         router.push(`/user/${session?.user?.id}`)
@@ -158,6 +169,7 @@ export default function ServiceDetailPage() {
     }
   }
 
+
   if (loading) {
     return (
       <MainLayout>
@@ -171,13 +183,14 @@ export default function ServiceDetailPage() {
     )
   }
 
+
   if (!service) {
     return (
       <MainLayout>
         <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
           <div className="text-center">
             <h2 className="text-2xl font-bold mb-2">Service not found</h2>
-            <p className="text-muted-foreground mb-4">The service you're looking for doesn't exist.</p>
+            <p className="text-muted-foreground mb-4">The service you&apos;re looking for doesn&apos;t exist.</p>
             <Button onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
@@ -187,6 +200,7 @@ export default function ServiceDetailPage() {
       </MainLayout>
     )
   }
+
 
   return (
     <MainLayout>
@@ -203,6 +217,7 @@ export default function ServiceDetailPage() {
               Back to Services
             </Button>
 
+
             {/* Owner Action Buttons */}
             {isOwner && (
               <div className="flex items-center space-x-2">
@@ -216,6 +231,7 @@ export default function ServiceDetailPage() {
                     Edit
                   </Link>
                 </Button>
+
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -234,7 +250,7 @@ export default function ServiceDetailPage() {
                         Delete Service
                       </AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{service.title}"? This action cannot be undone.
+                        Are you sure you want to delete &ldquo;{service.title}&rdquo;? This action cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -252,6 +268,7 @@ export default function ServiceDetailPage() {
             )}
           </div>
 
+
           {/* Main Service Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
             {/* Image Gallery - Left Side */}
@@ -260,10 +277,13 @@ export default function ServiceDetailPage() {
               <div className="relative aspect-square overflow-hidden rounded-xl glass-card bg-white/5">
                 {service.images && service.images.length > 0 ? (
                   <>
-                    <img
+                    <Image
                       src={service.images[selectedImageIndex]}
                       alt={service.title}
-                      className="w-full h-full object-contain"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-contain"
+                      priority
                     />
                     {service.images.length > 1 && (
                       <>
@@ -271,7 +291,7 @@ export default function ServiceDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={prevImage}
-                          className="absolute left-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
@@ -279,18 +299,19 @@ export default function ServiceDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={nextImage}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </>
                     )}
 
+
                     {/* Fullscreen toggle button bottom right */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute bottom-2 right-2 glass hover:bg-white/20"
+                      className="absolute bottom-2 right-2 glass hover:bg-white/20 z-10"
                       onClick={toggleFullscreen}
                       title="View Fullscreen"
                     >
@@ -303,6 +324,7 @@ export default function ServiceDetailPage() {
                   </div>
                 )}
               </div>
+
 
               {/* Thumbnail Images */}
               {service.images && service.images.length > 1 && (
@@ -317,25 +339,30 @@ export default function ServiceDetailPage() {
                           : 'border-transparent'
                       }`}
                     >
-                      <img
-                        src={image}
-                        alt={`${service.title} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={image}
+                          alt={`${service.title} ${index + 1}`}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
+
             {/* Service Details - Right Side */}
             <div className="space-y-6">
               <div>
                 <div className="flex items-center flex-wrap gap-2 mb-2">
-                  <Badge variant="secondary">{service.category}</Badge>
+                  <Badge variant="secondary">{SERVICE_CATEGORY_TEXT_MAP[service.category]}</Badge>
                   <div className="flex items-center">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">4.8</span>
+                    <span className="text-sm font-medium">4.8</span> {/* This seems like a static rating */}
                   </div>
                 </div>
                 <h1 className="text-3xl font-bold mb-4">{service.title}</h1>
@@ -353,6 +380,7 @@ export default function ServiceDetailPage() {
                   </div>
                 </div>
 
+
               {/* Description */}
               {service.description && (
                 <div className="glass-card p-6 rounded-lg mb-6">
@@ -364,7 +392,7 @@ export default function ServiceDetailPage() {
 
                 {/* Key Details Grid */}
                 <div className="grid grid-cols-2 gap-4 mb-6">
-                  {service.experienceYears && (
+                  {service.experienceYears !== undefined && service.experienceYears !== null && (
                     <div className="glass-card p-4 rounded-lg">
                       <p className="text-sm text-muted-foreground">Experience</p>
                       <p className="font-semibold flex items-center">
@@ -384,6 +412,7 @@ export default function ServiceDetailPage() {
                   )}
                 </div>
 
+
                 {/* Portfolio Link Button */}
                 {service.portfolioUrl && (
                   <div className="mb-6">
@@ -399,6 +428,7 @@ export default function ServiceDetailPage() {
                   </div>
                 )}
               </div>
+
 
               {/* Service Provider Info */}
               <div className="glass-card p-6 rounded-lg">
@@ -446,6 +476,7 @@ export default function ServiceDetailPage() {
             </div>
           </div>
 
+
           {/* Fullscreen Photo Viewer Overlay - Improved */}
           {isFullscreen && (
             <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
@@ -459,6 +490,7 @@ export default function ServiceDetailPage() {
                 <X className="w-8 h-8" />
               </Button>
 
+
               {/* Left Navigation Arrow */}
               {service.images && service.images.length > 1 && (
                 <Button
@@ -470,6 +502,7 @@ export default function ServiceDetailPage() {
                   <ChevronLeft className="w-10 h-10" />
                 </Button>
               )}
+
 
               {/* Right Navigation Arrow */}
               {service.images && service.images.length > 1 && (
@@ -483,26 +516,28 @@ export default function ServiceDetailPage() {
                 </Button>
               )}
 
+
               {/* Main Image Container */}
               <div className="w-full h-full flex items-center justify-center p-20">
                 <div 
                   className="relative w-full h-full flex items-center justify-center overflow-hidden"
                   style={{ cursor: zoom > 1 ? 'grab' : 'default' }}
                 >
-                  <img
-                    src={service.images?.[selectedImageIndex]}
+                  <Image
+                    src={service.images?.[selectedImageIndex] || ''} // Ensure string or empty string
                     alt={service.title}
-                    className="max-w-full max-h-full object-contain"
+                    fill
+                    sizes="100vw"
+                    className="object-contain"
                     style={{ 
                       transform: `scale(${zoom})`, 
                       transition: 'transform 0.3s ease',
-                      width: 'auto',
-                      height: 'auto'
                     }}
                     draggable={false}
                   />
                 </div>
               </div>
+
 
               {/* Bottom Controls */}
               <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-6 bg-black/50 backdrop-blur-sm rounded-full px-6 py-3">
@@ -529,6 +564,7 @@ export default function ServiceDetailPage() {
                   <ZoomIn className="w-5 h-5" />
                 </Button>
 
+
                 {/* Image Counter */}
                 {service.images && service.images.length > 1 && (
                   <>
@@ -538,6 +574,7 @@ export default function ServiceDetailPage() {
                     </span>
                   </>
                 )}
+
 
                 {/* Reset Zoom Button */}
                 {zoom !== 1 && (
@@ -554,12 +591,14 @@ export default function ServiceDetailPage() {
                 )}
               </div>
 
+
               {/* Keyboard Hint */}
               <div className="absolute top-6 left-6 text-white/60 text-sm">
                 Press ESC to close
               </div>
             </div>
           )}
+
 
           {/* Similar Services Section */}
           {similarServices.length > 0 && (
@@ -576,10 +615,12 @@ export default function ServiceDetailPage() {
                       <Card className="glass-card hover-lift h-full">
                         <div className="aspect-video relative overflow-hidden rounded-t-lg">
                           {similarService.images && similarService.images.length > 0 ? (
-                            <img
+                            <Image
                               src={similarService.images[0]}
                               alt={similarService.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                              fill
+                              sizes="256px"
+                              className="object-cover group-hover:scale-110 transition-smooth"
                             />
                           ) : (
                             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -606,7 +647,7 @@ export default function ServiceDetailPage() {
                             <p className="text-xs text-muted-foreground">
                               by {similarService.owner?.name || 'Unknown'}
                             </p>
-                            {similarService.experienceYears && (
+                            {similarService.experienceYears !== undefined && similarService.experienceYears !== null && (
                               <Badge variant="outline" className="text-xs">
                                 {similarService.experienceYears}+ years
                               </Badge>
@@ -620,6 +661,7 @@ export default function ServiceDetailPage() {
               </div>
             </div>
           )}
+
 
           {/* Related Products Section */}
           {relatedProducts.length > 0 && (
@@ -636,10 +678,12 @@ export default function ServiceDetailPage() {
                       <Card className="glass-card hover-lift h-full">
                         <div className="aspect-video relative overflow-hidden rounded-t-lg">
                           {product.images && product.images.length > 0 ? (
-                            <img
+                            <Image
                               src={product.images[0]}
                               alt={product.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-smooth"
+                              fill
+                              sizes="256px"
+                              className="object-cover group-hover:scale-110 transition-smooth"
                             />
                           ) : (
                             <div className="w-full h-full bg-muted flex items-center justify-center">
@@ -657,9 +701,11 @@ export default function ServiceDetailPage() {
                                 {formatCurrency(product.price)}
                               </span>
                             )}
-                            <Badge variant="outline" className="text-xs">
-                              Condition: {product.condition}/5
-                            </Badge>
+                            {product.condition !== undefined && product.condition !== null && (
+                              <Badge variant="outline" className="text-xs">
+                                Condition: {product.condition}/5
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground">
                             by {product.owner?.name || 'Unknown'}

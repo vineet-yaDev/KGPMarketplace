@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image' // Add this import
 import {
   Briefcase,
   BookOpen,
@@ -15,7 +16,6 @@ import {
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Service } from '@/lib/types'
 
 const serviceCategoryIcons: Record<string, React.ReactNode> = {
@@ -73,11 +73,15 @@ export default function RecentServices() {
             >
               <Card className="glass-card hover-lift shadow-lg transition-shadow h-full flex flex-col">
                 {service.images.length > 0 ? (
-                  <img
-                    src={service.images[0]}
-                    alt={service.title}
-                    className="w-full h-48 object-cover rounded-t-md"
-                  />
+                  <div className="relative w-full h-48">
+                    <Image
+                      src={service.images[0]}
+                      alt={service.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                      className="object-cover rounded-t-md"
+                    />
+                  </div>
                 ) : (
                   <div className="flex justify-center items-center w-full h-48 bg-gray-100 rounded-t-md text-gray-400">
                     {serviceCategoryIcons[service.category?.toUpperCase() || 'OTHER'] || <Briefcase size={48} />}

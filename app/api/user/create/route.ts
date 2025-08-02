@@ -2,12 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { createOrUpdateUser, getUserByEmail } from '@/lib/db'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
+  try {    
     const body = await request.json()
     const { email, name, image, mobileNumber } = body
 
@@ -49,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     

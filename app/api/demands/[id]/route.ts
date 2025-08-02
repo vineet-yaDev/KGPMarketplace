@@ -3,11 +3,12 @@ import { validateSession } from '@/lib/auth-helpers'
 import { getDemandById, updateDemand, deleteDemand } from '@/lib/db'
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const demand = await getDemandById(params.id)
+    const { id } = await params
+    const demand = await getDemandById(id)
     
     if (!demand) {
       return NextResponse.json({ error: 'Demand not found' }, { status: 404 })
@@ -22,7 +23,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+{ params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { valid, error, session } = await validateSession()
@@ -34,7 +35,8 @@ export async function PUT(
       }, { status: 401 })
     }
 
-    const demand = await getDemandById(params.id)
+    const { id } = await params
+    const demand = await getDemandById(id)
     
     if (!demand) {
       return NextResponse.json({ error: 'Demand not found' }, { status: 404 })
@@ -46,7 +48,7 @@ export async function PUT(
     }
 
     const updateData = await request.json()
-    const updatedDemand = await updateDemand(params.id, updateData)
+    const updatedDemand = await updateDemand(id, updateData)
 
     return NextResponse.json({ 
       success: true, 
@@ -63,7 +65,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { valid, error, session } = await validateSession()
@@ -75,7 +77,8 @@ export async function DELETE(
       }, { status: 401 })
     }
 
-    const demand = await getDemandById(params.id)
+    const { id } = await params
+    const demand = await getDemandById(id)
     
     if (!demand) {
       return NextResponse.json({ error: 'Demand not found' }, { status: 404 })
@@ -86,7 +89,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    await deleteDemand(params.id)
+    await deleteDemand(id)
 
     return NextResponse.json({ 
       success: true, 
