@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image' // Import Image component
-import { ArrowLeft, MapPin, Calendar, Phone, ChevronLeft, ChevronRight, Star, Clock, ExternalLink, Edit, Trash2, AlertTriangle, Briefcase, Maximize2, ZoomIn, ZoomOut, X } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, ChevronLeft, ChevronRight, Star, Clock, ExternalLink, Edit, Trash2, AlertTriangle, Maximize2, ZoomIn, ZoomOut, X, Package, MessageSquare } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -226,7 +226,7 @@ export default function ServiceDetailPage() {
                   className="glass border-white/20"
                   asChild
                 >
-                  <Link href={`/sell?edit=${service.id}&type=service`}>
+                  <Link href={`/add?edit=${service.id}&type=service`}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Link>
@@ -454,24 +454,29 @@ export default function ServiceDetailPage() {
                 </div>
                 
                 {/* Contact Actions */}
-                {!isOwner && (
-                  <div className="flex space-x-3 mt-4">
-                    {service.mobileNumber && (
-                      <Button className="btn-gradient-primary flex-1" asChild>
-                        <a href={`tel:${service.mobileNumber}`}>
-                          <Phone className="w-4 h-4 mr-2" />
-                          Call Provider
-                        </a>
-                      </Button>
-                    )}
-                    <Button variant="outline" className="glass border-white/20 flex-1" asChild>
-                      <Link href={`/user/${service.ownerId}`}>
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        View Listings
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+{!isOwner && (
+  <div className="flex space-x-3 mt-4">
+    {service.mobileNumber && (
+      <Button className="btn-gradient-primary flex-1" asChild>
+        <a 
+          href={`https://wa.me/+91${service.mobileNumber}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <MessageSquare className="w-4 h-4 mr-2" />
+          WhatsApp Seller
+        </a>
+      </Button>
+    )}
+    <Button variant="outline" className="glass border-white/20 flex-1" asChild>
+      <Link href={`/user/${service.ownerId}`}>
+        <Package className="w-4 h-4 mr-2" />
+        View Listings
+      </Link>
+    </Button>
+  </div>
+)}
+
               </div>
             </div>
           </div>

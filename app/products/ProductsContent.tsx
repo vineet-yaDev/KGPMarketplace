@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Grid, List, X, Filter } from 'lucide-react'
+import { Search, Grid, List, X, Filter, Check } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,11 +52,34 @@ export default function ProductsContent() {
   const [selectedCondition, setSelectedCondition] = useState('')
   const [maxPrice, setMaxPrice] = useState([10000])
   const [sortBy, setSortBy] = useState('newest')
-  const [viewMode, setViewMode] = useState('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
   const searchParams = useSearchParams()
   const router = useRouter()
+  const filterModalRef = useRef<HTMLDivElement>(null)
+
+  // Close mobile filter when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
+        setShowMobileFilters(false)
+      }
+    }
+
+    if (showMobileFilters) {
+      document.addEventListener('mousedown', handleClickOutside)
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.body.style.overflow = 'unset'
+    }
+  }, [showMobileFilters])
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -294,14 +317,14 @@ export default function ProductsContent() {
   return (
     <MainLayout>
       <div className="min-h-screen bg-gradient-surface">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Products</h1>
-            <p className="text-muted-foreground">Find amazing products from your fellow students</p>
+          <div className="mb-4 sm:mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Products</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Find amazing products from your fellow students</p>
           </div>
 
-          <div className="flex gap-8">
+          <div className="flex gap-4 lg:gap-8">
             {/* Left Sidebar - Filters */}
             <div className="hidden lg:block w-80 flex-shrink-0">
               <div className="glass-card p-6 sticky top-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
@@ -401,10 +424,10 @@ export default function ProductsContent() {
             {/* Main Content */}
             <div className="flex-1 min-w-0">
               {/* Top Bar - Search and Controls */}
-              <div className="glass-card p-4 mb-6">
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                  {/* Left side - Search */}
-                  <div className="flex-1 max-w-md relative">
+              <div className="glass-card p-3 sm:p-4 mb-4 sm:mb-6">
+                <div className="flex flex-col space-y-3 sm:space-y-4">
+                  {/* Search */}
+                  <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search products..."
@@ -414,145 +437,163 @@ export default function ProductsContent() {
                     />
                   </div>
 
-                  {/* Right side - Sort and View */}
-                  <div className="flex items-center gap-3">
+                  {/* Controls Row */}
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                     {/* Mobile Filter Button */}
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setShowMobileFilters(true)}
-                      className="lg:hidden glass border-white/20"
+                      className="lg:hidden glass border-white/20 w-full sm:w-auto"
                     >
                       <Filter className="w-4 h-4 mr-2" />
                       Filters
                     </Button>
 
-                    {/* Sort */}
-                    <Select value={sortBy} onValueChange={(value) => handleFilterChange('sort', value)}>
-                      <SelectTrigger className="w-48 glass border-white/20">
-                        <SelectValue placeholder="Sort by" />
-                      </SelectTrigger>
-                      <SelectContent className="glass">
-                        <SelectItem value="newest">Newest First</SelectItem>
-                        <SelectItem value="oldest">Oldest First</SelectItem>
-                        <SelectItem value="price-low">Price: Low to High</SelectItem>
-                        <SelectItem value="price-high">Price: High to Low</SelectItem>
-                        <SelectItem value="condition-high">Condition: High to Low</SelectItem>
-                        <SelectItem value="condition-low">Condition: Low to High</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                      {/* Sort */}
+                      <Select value={sortBy} onValueChange={(value) => handleFilterChange('sort', value)}>
+                        <SelectTrigger className="w-full sm:w-48 glass border-white/20">
+                          <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
+                        <SelectContent className="glass">
+                          <SelectItem value="newest">Newest First</SelectItem>
+                          <SelectItem value="oldest">Oldest First</SelectItem>
+                          <SelectItem value="price-low">Price: Low to High</SelectItem>
+                          <SelectItem value="price-high">Price: High to Low</SelectItem>
+                          <SelectItem value="condition-high">Condition: High to Low</SelectItem>
+                          <SelectItem value="condition-low">Condition: Low to High</SelectItem>
+                        </SelectContent>
+                      </Select>
 
-                    {/* View Mode */}
-                    <div className="flex rounded-lg glass border border-white/20 p-1">
-                      <Button
-                        variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('grid')}
-                        className="px-3"
-                      >
-                        <Grid className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant={viewMode === 'list' ? 'default' : 'ghost'}
-                        size="sm"
-                        onClick={() => setViewMode('list')}
-                        className="px-3"
-                      >
-                        <List className="w-4 h-4" />
-                      </Button>
+                      {/* View Mode - Updated with 3 options */}
+                      <div className="flex rounded-lg glass border border-white/20 p-1 w-fit mx-auto sm:mx-0">
+                        <Button
+                          variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('grid')}
+                          className="px-2 sm:px-3"
+                          title="Grid View"
+                        >
+                            <div className="w-4 h-4 grid grid-cols-2 gap-0.5">
+                            <div className="bg-current rounded-sm"></div>
+                            <div className="bg-current rounded-sm"></div>
+                            <div className="bg-current rounded-sm"></div>
+                            <div className="bg-current rounded-sm"></div>
+                          </div>
+                        </Button>
+                        <Button
+                          variant={viewMode === 'compact' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('compact')}
+                          className="px-2 sm:px-3"
+                          title="Compact Grid"
+                        >
+                          <Grid className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant={viewMode === 'list' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setViewMode('list')}
+                          className="px-2 sm:px-3"
+                          title="List View"
+                        >
+                          <List className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Active Filters */}
-                {hasActiveFilters && (
-                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/10">
-                    {selectedCategory && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        {formatEnumName(selectedCategory)}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('category', '')}
-                        />
-                      </Badge>
-                    )}
-                    {selectedHall && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        {selectedHall}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('hall', '')}
-                        />
-                      </Badge>
-                    )}
-                    {selectedType && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        {PRODUCT_TYPE_TEXT_MAP[selectedType as keyof typeof PRODUCT_TYPE_TEXT_MAP] || formatEnumName(selectedType)}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('type', '')}
-                        />
-                      </Badge>
-                    )}
-                    {selectedStatus && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        {formatEnumName(selectedStatus)}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('status', '')}
-                        />
-                      </Badge>
-                    )}
-                    {selectedCondition && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        Condition: {selectedCondition}/5
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('condition', '')}
-                        />
-                      </Badge>
-                    )}
-                    {selectedSeasonality && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        {SEASONALITY_TEXT_MAP[selectedSeasonality as keyof typeof SEASONALITY_TEXT_MAP] || formatEnumName(selectedSeasonality)}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('seasonality', '')}
-                        />
-                      </Badge>
-                    )}
-                    {maxPrice[0] < 10000 && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        Max: {formatCurrency(maxPrice[0])}
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('maxPrice', 10000)}
-                        />
-                      </Badge>
-                    )}
-                    {searchQuery && (
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        &ldquo;{searchQuery}&rdquo;
-                        <X 
-                          className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                          onClick={() => handleFilterChange('search', '')}
-                        />
-                      </Badge>
-                    )}
-                  </div>
-                )}
+                  {/* Active Filters */}
+                  {hasActiveFilters && (
+                    <div className="flex flex-wrap gap-2 pt-3 border-t border-white/10">
+                      {selectedCategory && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          {formatEnumName(selectedCategory)}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('category', '')}
+                          />
+                        </Badge>
+                      )}
+                      {selectedHall && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          {selectedHall}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('hall', '')}
+                          />
+                        </Badge>
+                      )}
+                      {selectedType && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          {PRODUCT_TYPE_TEXT_MAP[selectedType as keyof typeof PRODUCT_TYPE_TEXT_MAP] || formatEnumName(selectedType)}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('type', '')}
+                          />
+                        </Badge>
+                      )}
+                      {selectedStatus && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          {formatEnumName(selectedStatus)}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('status', '')}
+                          />
+                        </Badge>
+                      )}
+                      {selectedCondition && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          Condition: {selectedCondition}/5
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('condition', '')}
+                          />
+                        </Badge>
+                      )}
+                      {selectedSeasonality && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          {SEASONALITY_TEXT_MAP[selectedSeasonality as keyof typeof SEASONALITY_TEXT_MAP] || formatEnumName(selectedSeasonality)}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('seasonality', '')}
+                          />
+                        </Badge>
+                      )}
+                      {maxPrice[0] < 10000 && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          Max: {formatCurrency(maxPrice[0])}
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('maxPrice', 10000)}
+                          />
+                        </Badge>
+                      )}
+                      {searchQuery && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          &ldquo;{searchQuery}&rdquo;
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('search', '')}
+                          />
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Results Count */}
-              <div className="mb-6">
-                <p className="text-muted-foreground">
+              <div className="mb-4 sm:mb-6 px-1">
+                <p className="text-muted-foreground text-sm">
                   {sortedProducts.length} product{sortedProducts.length !== 1 ? 's' : ''} found
                 </p>
               </div>
 
-              {/* Products Grid/List */}
+              {/* Products Grid/List/Compact */}
               {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {sortedProducts.map((product: Product) => (
                     <Link key={product.id} href={`/products/${product.id}`} className="group">
                       <Card className="glass-card hover-lift overflow-hidden h-full">
@@ -562,68 +603,126 @@ export default function ProductsContent() {
                               src={product.images[0]}
                               alt={product.title}
                               fill
-                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                               className="object-cover group-hover:scale-110 transition-smooth"
                             />
                           ) : (
                             <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <span className="text-muted-foreground">No image</span>
+                              <span className="text-muted-foreground text-sm">No image</span>
                             </div>
                           )}
                           {product.originalPrice && product.price && (
-                            <Badge className="absolute top-2 right-2 bg-red-500 text-white">
+                            <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
                               {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
                             </Badge>
                           )}
-                          <Badge className="absolute top-2 left-2 bg-primary text-white">
+                          <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
                             {PRODUCT_TYPE_TEXT_MAP[product.productType] || formatEnumName(product.productType || 'USED')}
                           </Badge>
+                          {/* Green tick for invoice URL */}
+                          {product.invoiceImageUrl && (
+                            <div className="absolute bottom-2 right-2 bg-green-500 text-white rounded-full p-1">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
                         </div>
-                        <CardContent className="p-4">
-                          <h3 className="font-semibold truncate mb-2">{product.title}</h3>
-                          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        <CardContent className="p-3 sm:p-4">
+                          <h3 className="font-semibold truncate mb-2 text-sm sm:text-base">{product.title}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
                             {product.description || 'No description available'}
                           </p>
-                          <div className="flex items-center space-x-2 mb-2">
+                          <div className="flex items-center space-x-2 mb-2 flex-wrap">
                             {product.price && (
-                              <span className="font-bold text-lg text-primary">
+                              <span className="font-bold text-base sm:text-lg text-primary">
                                 {formatCurrency(product.price)}
                               </span>
                             )}
                             {product.originalPrice && (
-                              <span className="text-sm text-muted-foreground line-through">
+                              <span className="text-xs sm:text-sm text-muted-foreground line-through">
                                 {formatCurrency(product.originalPrice)}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center justify-between">
-                            <Badge variant="secondary">Condition: {product.condition}/5</Badge>
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <Badge variant="secondary" className="text-xs">Condition: {product.condition}/5</Badge>
                             {product.addressHall && (
                               <span className="text-xs text-muted-foreground">{product.addressHall}</span>
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            by {product.owner?.name || 'Unknown'}
-                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              ) : viewMode === 'compact' ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+                  {sortedProducts.map((product: Product) => (
+                    <Link key={product.id} href={`/products/${product.id}`} className="group">
+                      <Card className="glass-card hover-lift overflow-hidden h-full">
+                        <div className="aspect-square relative overflow-hidden">
+                          {product.images && product.images.length > 0 ? (
+                            <Image
+                              src={product.images[0]}
+                              alt={product.title}
+                              fill
+                              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, (max-width: 1280px) 20vw, 16vw"
+                              className="object-cover group-hover:scale-110 transition-smooth"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <span className="text-muted-foreground text-xs">No image</span>
+                            </div>
+                          )}
+                          {product.originalPrice && product.price && (
+                            <Badge className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 py-0.5">
+                              {Math.round((1 - product.price / product.originalPrice) * 100)}%
+                            </Badge>
+                          )}
+                          <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
+                            {PRODUCT_TYPE_TEXT_MAP[product.productType]?.split(' ')[0] || formatEnumName(product.productType || 'USED')}
+                          </Badge>
+                          {/* Green tick for invoice URL */}
+                          {product.invoiceImageUrl && (
+                            <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-0.5">
+                              <Check className="w-2 h-2" />
+                            </div>
+                          )}
+                        </div>
+                        <CardContent className="p-2">
+                          <h3 className="font-semibold text-xs line-clamp-2 mb-1 leading-tight">{product.title}</h3>
+                          <div className="flex items-center justify-between mb-1">
+                            {product.price && (
+                              <span className="font-bold text-sm text-primary">
+                                ₹{product.price < 1000 ? product.price : (product.price / 1000).toFixed(1) + 'K'}
+                              </span>
+                            )}
+                            <Badge variant="secondary" className="text-xs px-1 py-0">
+                              {product.condition}/5
+                            </Badge>
+                          </div>
+                          {product.addressHall && (
+                            <p className="text-xs text-muted-foreground truncate">{product.addressHall}</p>
+                          )}
                         </CardContent>
                       </Card>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {sortedProducts.map((product: Product) => (
                     <Link key={product.id} href={`/products/${product.id}`} className="group">
-                      <Card className="glass-card hover-lift">
-                        <CardContent className="p-6">
-                          <div className="flex gap-4">
-                            <div className="w-32 h-24 relative overflow-hidden rounded-lg flex-shrink-0">
+                      <Card className="glass-card hover-lift overflow-hidden">
+                        <CardContent className="p-3 sm:p-6">
+                          <div className="flex gap-3 sm:gap-4">
+                            {/* Larger Image Container */}
+                            <div className="w-24 h-20 sm:w-32 sm:h-24 md:w-40 md:h-32 relative overflow-hidden rounded-lg flex-shrink-0">
                               {product.images && product.images.length > 0 ? (
                                 <Image
                                   src={product.images[0]}
                                   alt={product.title}
                                   fill
-                                  sizes="128px"
+                                  sizes="(max-width: 640px) 96px, (max-width: 768px) 128px, 160px"
                                   className="object-cover group-hover:scale-110 transition-smooth"
                                 />
                               ) : (
@@ -631,50 +730,74 @@ export default function ProductsContent() {
                                   <span className="text-xs text-muted-foreground">No image</span>
                                 </div>
                               )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h3 className="font-semibold text-lg">{product.title}</h3>
-                                  <div className="flex gap-2 mt-1">
-                                    <Badge variant="outline" className="text-xs">
-                                      {PRODUCT_TYPE_TEXT_MAP[product.productType] || formatEnumName(product.productType || 'USED')}
-                                    </Badge>
-                                    <Badge variant="outline" className="text-xs">
-                                      {formatEnumName(product.status || 'LISTED')}
-                                    </Badge>
-                                  </div>
+                              
+                              {/* Product Type Badge on Image */}
+                              <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
+                                {PRODUCT_TYPE_TEXT_MAP[product.productType] || formatEnumName(product.productType || 'USED')}
+                              </Badge>
+                              
+                              {/* Status Badge on Image */}
+                              <Badge className="absolute top-1 right-1 bg-secondary text-xs px-1 py-0.5">
+                                {formatEnumName(product.status || 'LISTED')}
+                              </Badge>
+                              
+                              {/* Green tick for invoice URL */}
+                              {product.invoiceImageUrl && (
+                                <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-1">
+                                  <Check className="w-2 h-2 sm:w-3 sm:h-3" />
                                 </div>
+                              )}
+                            </div>
+                            
+                            {/* Content Area */}
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex justify-between items-start mb-2 gap-2">
+                                {/* Left side - Title */}
+                                <div className="min-w-0 flex-1">
+                                  <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-1 mb-1">
+                                    {product.title}
+                                  </h3>
+                                </div>
+                                
+                                {/* Right side - Discount Badge */}
                                 {product.originalPrice && product.price && (
-                                  <Badge className="bg-red-500 text-white">
+                                  <Badge className="bg-red-500 text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap">
                                     {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-muted-foreground mb-3 line-clamp-2">
+                              
+                              {/* Description */}
+                              <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 line-clamp-2">
                                 {product.description || 'No description available'}
                               </p>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
+                              
+                              {/* Bottom Row - Price and Details */}
+                              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+                                {/* Left side - Price */}
+                                <div className="flex items-baseline space-x-2 flex-wrap">
                                   {product.price && (
-                                    <span className="font-bold text-xl text-primary">
+                                    <span className="font-bold text-base sm:text-lg md:text-xl text-primary">
                                       {formatCurrency(product.price)}
                                     </span>
                                   )}
                                   {product.originalPrice && (
-                                    <span className="text-muted-foreground line-through">
+                                    <span className="text-xs sm:text-sm text-muted-foreground line-through">
                                       {formatCurrency(product.originalPrice)}
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center space-x-4">
-                                  <Badge variant="secondary">Condition: {product.condition}/5</Badge>
+                                
+                                {/* Right side - Condition and Hall */}
+                                <div className="flex items-center space-x-2 flex-wrap text-xs sm:text-sm">
+                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                                    Condition: {product.condition}/5
+                                  </Badge>
                                   {product.addressHall && (
-                                    <span className="text-sm text-muted-foreground">{product.addressHall}</span>
+                                    <span className="text-muted-foreground whitespace-nowrap">
+                                      {product.addressHall}
+                                    </span>
                                   )}
-                                  <span className="text-sm text-muted-foreground">
-                                    by {product.owner?.name || 'Unknown'}
-                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -703,7 +826,10 @@ export default function ProductsContent() {
         {/* Mobile Filter Modal */}
         {showMobileFilters && (
           <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
-            <div className="fixed right-0 top-0 h-full w-80 bg-background glass-card p-6 overflow-y-auto">
+            <div 
+              ref={filterModalRef}
+              className="fixed left-0 top-0 h-full w-80 max-w-[85vw] bg-background glass-card p-6 overflow-y-auto"
+            >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold">Filters</h3>
                 <Button
@@ -755,6 +881,16 @@ export default function ProductsContent() {
                 options={CONDITION_OPTIONS}
                 placeholder="Select condition"
               />
+
+              <FilterDropdown
+                label="Seasonality"
+                value={selectedSeasonality}
+                onValueChange={(value: string) => handleFilterChange('seasonality', value)}
+                options={SEASONALITIES}
+                placeholder="Select seasonality"
+              />
+
+              <Separator className="my-6" />
 
               {/* Price Range Slider */}
               <div className="mb-6">

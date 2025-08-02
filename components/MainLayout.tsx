@@ -76,22 +76,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gradient-surface">
-      {/* Header */}
+      {/* Header - Responsive */}
       <header className="sticky top-0 z-50 glass-nav">
-        <div className="container mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-smooth">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <ShoppingBag className="w-5 h-5 text-white" />
+        <div className="container mx-auto px-2 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            {/* Logo - Responsive */}
+            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-smooth flex-shrink-0">
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
-              <span className="hidden sm:block text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+              <span className="hidden sm:block text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 KGP Marketplace
               </span>
             </Link>
 
-            {/* Desktop Search Bar */}
-            <div className="hidden md:flex flex-1 max-w-md mx-8">
+            {/* Desktop Search Bar - Responsive */}
+            <div className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
               <form onSubmit={handleSearch} className="w-full">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -100,20 +100,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     placeholder="Search products, services..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 glass border-white/20 focus:border-primary/50 bg-white/5"
+                    className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
               </form>
             </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-6">
+            {/* Desktop Navigation - Responsive */}
+            <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
               {navigationLinks.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
                   className={`text-sm font-medium transition-colors hover:text-primary ${
-                    isActivePath(href) ? 'text-primary' : 'text-foreground'
+                    isActivePath(href) ? 'text-primary' : 'text-foreground hover:text-foreground/80 dark:hover:text-foreground'
                   }`}
                 >
                   {label}
@@ -121,56 +121,56 @@ export default function MainLayout({ children }: MainLayoutProps) {
               ))}
             </nav>
 
-            {/* Right Section */}
-            <div className="flex items-center space-x-3">
-              {/* ADD Button */}
+            {/* Right Section - Responsive */}
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              {/* ADD Button - Improved styling and responsive */}
               {isAuthenticated ? (
                 <Link href="/add">
-                  <Button className="btn-gradient-primary text-sm font-medium">
-                    <Plus className="w-4 h-4 mr-1" />
-                    <span className="hidden sm:inline">Add</span>
+                  <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold text-sm sm:text-base px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-white/20">
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
+                    <span className="xs:inline mr-2">Add</span>
                   </Button>
                 </Link>
               ) : (
                 <Button 
                   onClick={() => signIn('google', { callbackUrl: '/add' })}
-                  className="btn-gradient-primary text-sm font-medium"
+                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold text-sm sm:text-base px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-white/20"
                 >
-                  <Plus className="w-4 h-4 mr-1" />
-                  <span className="hidden sm:inline">Add</span>
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-1" />
+                  <span className="xs:inline mr-2">Add</span>
                 </Button>
               )}
 
-              {/* Theme Toggle */}
+              {/* Theme Toggle - Responsive */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="glass hover:bg-white/10">
+                  <Button variant="ghost" size="sm" className="glass-button hover:bg-white/20 dark:hover:bg-white/10 p-2">
                     <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                     <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                     <span className="sr-only">Toggle theme</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="glass border-white/20">
-                  <DropdownMenuItem onClick={() => setTheme('light')}>
+                <DropdownMenuContent align="end" className="glass-dropdown border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl">
+                  <DropdownMenuItem onClick={() => setTheme('light')} className="hover:bg-black/10 dark:hover:bg-white/10">
                     <Sun className="h-4 w-4 mr-2" />
                     Light
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  <DropdownMenuItem onClick={() => setTheme('dark')} className="hover:bg-black/10 dark:hover:bg-white/10">
                     <Moon className="h-4 w-4 mr-2" />
                     Dark
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('system')}>
+                  <DropdownMenuItem onClick={() => setTheme('system')} className="hover:bg-black/10 dark:hover:bg-white/10">
                     <Monitor className="h-4 w-4 mr-2" />
                     System
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* User Menu */}
+              {/* User Menu - Responsive */}
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full glass hover:bg-white/10">
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full glass-button hover:bg-white/20 dark:hover:bg-white/10">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.image || ''} alt={user?.name || ''} />
                         <AvatarFallback className="bg-gradient-primary text-white">
@@ -179,11 +179,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 glass border-white/20" align="end">
+                  <DropdownMenuContent className="w-56 glass-dropdown border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl" align="end">
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
                         {user?.name && (
-                          <p className="font-medium">{user.name}</p>
+                          <p className="font-medium text-foreground">{user.name}</p>
                         )}
                         {user?.email && (
                           <p className="w-[200px] truncate text-sm text-muted-foreground">
@@ -192,41 +192,39 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         )}
                       </div>
                     </div>
-                    <DropdownMenuSeparator />
-                    {/* Only show profile menu items if authenticated */}
+                    <DropdownMenuSeparator className="bg-white/20" />
                     {profileMenuItems.map(({ href, label, icon: Icon }) => (
-                      <DropdownMenuItem key={href} asChild>
-                        <Link href={href} className="w-full">
+                      <DropdownMenuItem key={href} asChild className="hover:bg-black/10 dark:hover:bg-white/10">
+                        <Link href={href} className="w-full text-foreground">
                           <Icon className="w-4 h-4 mr-2" />
                           {label}
                         </Link>
                       </DropdownMenuItem>
                     ))}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
+                    <DropdownMenuSeparator className="bg-white/20" />
+                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-black/10 dark:hover:bg-white/10 text-foreground">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                // Login button for unauthenticated users - direct Google sign in
                 <Button 
                   onClick={() => signIn('google', { callbackUrl: '/' })}
                   variant="outline" 
                   size="sm" 
-                  className="glass border-white/20 hover:bg-white/10"
+                  className="glass-button border-white/20 hover:bg-white/20 dark:hover:bg-white/10 text-foreground hover:text-foreground"
                 >
                   <User className="h-4 w-4 mr-1" />
-                  Login
+                  <span className="hidden sm:inline">Login</span>
                 </Button>
               )}
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu Button - Responsive */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden glass hover:bg-white/10"
+                className="lg:hidden glass-button hover:bg-white/20 dark:hover:bg-white/10 p-2"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
@@ -234,8 +232,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </div>
           </div>
 
-          {/* Mobile Search Bar */}
-          <div className="md:hidden pb-4">
+          {/* Mobile Search Bar - Responsive */}
+          <div className="md:hidden pb-3 sm:pb-4">
             <form onSubmit={handleSearch}>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -244,7 +242,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   placeholder="Search products, services..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 glass border-white/20 focus:border-primary/50 bg-white/5"
+                  className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
                 />
               </div>
             </form>
@@ -252,22 +250,23 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       </header>
 
-      {/* Mobile Navigation Sidebar */}
+      {/* Mobile Navigation Sidebar - Fixed positioning and improved styling */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="fixed right-0 top-0 h-full w-64 glass-card border-l border-white/20 p-6">
-            <nav className="space-y-4 mt-16">
+          <div className="fixed right-0 top-0 h-full w-64 sm:w-72 glass-sidebar border-l border-white/20 p-4 sm:p-6 bg-white/95 dark:bg-black/80 backdrop-blur-xl">
+            {/* Add spacing from top to avoid navbar overlap */}
+            <nav className="space-y-3 sm:space-y-4 mt-24 sm:mt-28">
               {navigationLinks.map(({ href, label, icon: Icon }) => (
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center space-x-2 text-sm font-medium transition-colors hover:text-primary p-2 rounded-lg hover:bg-white/10 ${
-                    isActivePath(href) ? 'text-primary bg-white/10' : 'text-foreground'
+                  className={`flex items-center space-x-3 text-sm font-medium transition-colors p-3 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 ${
+                    isActivePath(href) ? 'text-primary bg-black/10 dark:bg-white/10' : 'text-foreground hover:text-foreground'
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
                   <span>{label}</span>
                 </Link>
               ))}
@@ -280,10 +279,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <Link
                       key={href}
                       href={href}
-                      className="flex items-center space-x-2 text-sm font-medium hover:text-primary p-2 rounded-lg hover:bg-white/10 transition-colors"
+                      className="flex items-center space-x-3 text-sm font-medium text-foreground hover:text-foreground p-3 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-5 h-5" />
                       <span>{label}</span>
                     </Link>
                   ))}
@@ -292,9 +291,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       handleSignOut()
                       setIsMobileMenuOpen(false)
                     }}
-                    className="w-full flex items-center space-x-2 text-sm font-medium hover:text-primary p-2 rounded-lg hover:bg-white/10 transition-colors text-left"
+                    className="w-full flex items-center space-x-3 text-sm font-medium text-foreground hover:text-foreground p-3 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-left"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-5 h-5" />
                     <span>Sign out</span>
                   </button>
                 </>
@@ -306,9 +305,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       signIn('google', { callbackUrl: '/' })
                       setIsMobileMenuOpen(false)
                     }}
-                    className="w-full flex items-center space-x-2 text-sm font-medium hover:text-primary p-2 rounded-lg hover:bg-white/10 transition-colors text-left"
+                    className="w-full flex items-center space-x-3 text-sm font-medium text-foreground hover:text-foreground p-3 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors text-left"
                   >
-                    <User className="w-4 h-4" />
+                    <User className="w-5 h-5" />
                     <span>Login with Google</span>
                   </button>
                 </>
@@ -323,19 +322,19 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="glass-card border-t border-white/10 mt-16">
-        <div className="container mx-auto px-4 lg:px-6 py-8">
-          <div className="text-center space-y-4">
+      {/* Footer - Responsive */}
+      <footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
+        <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
+          <div className="text-center space-y-3 sm:space-y-4">
             <div className="flex items-center justify-center space-x-2">
-              <div className="w-6 h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <ShoppingBag className="w-4 h-4 text-white" />
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
               </div>
-              <span className="text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
+              <span className="text-base sm:text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
                 KGP Marketplace
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Exclusive marketplace for IIT Kharagpur students
             </p>
             <p className="text-xs text-muted-foreground">

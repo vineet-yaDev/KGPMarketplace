@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'  // Added useCallback
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, Phone, Edit, Trash2, AlertTriangle, User } from 'lucide-react'
@@ -40,13 +40,13 @@ export default function DemandDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [params.id]) // Include params.id in the dependency array
+  }, [params.id])
 
   useEffect(() => {
     if (params.id) {
       fetchDemandDetails()
     }
-  }, [params.id, fetchDemandDetails]) // Add fetchDemandDetails to dependency array
+  }, [params.id, fetchDemandDetails])
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString)
@@ -112,29 +112,33 @@ export default function DemandDetailPage() {
   return (
     <MainLayout>
       <div className="min-h-screen bg-gradient-surface">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Header with Owner Actions */}
-          <div className="flex items-center justify-between mb-6">
+        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
+          {/* Header with Owner Actions - Responsive */}
+          <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
             <Button 
               variant="ghost" 
               onClick={() => router.back()}
-              className="glass hover:bg-white/10"
+              className="glass hover:bg-white/10 flex-shrink-0"
+              size="sm"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Demands
+              <span className="hidden sm:inline">Back to Demands</span>
+              <span className="sm:hidden">Back</span>
             </Button>
 
-            {/* Owner Action Buttons */}
+            {/* Owner Action Buttons - Responsive */}
             {isOwner && (
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <Button
                   variant="outline"
-                  className="glass border-white/20"
+                  className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                  size="sm"
                   asChild
                 >
                   <Link href={`/add?edit=${demand.id}&type=demand`}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                    <span className="hidden xs:inline">Edit</span>
+                    <span className="xs:hidden">Edit</span>
                   </Link>
                 </Button>
 
@@ -143,12 +147,19 @@ export default function DemandDetailPage() {
                     <Button
                       variant="destructive"
                       disabled={isDeleting}
+                      className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                      size="sm"
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      {isDeleting ? 'Deleting...' : 'Delete'}
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">
+                        {isDeleting ? 'Deleting...' : 'Delete'}
+                      </span>
+                      <span className="xs:hidden">
+                        {isDeleting ? '...' : 'Delete'}
+                      </span>
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="glass-card">
+                  <AlertDialogContent className="glass-card mx-2 sm:mx-4">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="flex items-center">
                         <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
@@ -173,70 +184,70 @@ export default function DemandDetailPage() {
             )}
           </div>
 
-          {/* Main Content - Full Width */}
-          <div className="space-y-8">
-            {/* Title and Badges - Full Width */}
-            <div className="glass-card p-8 rounded-xl">
-              <div className="flex items-center flex-wrap gap-2 mb-4">
+          {/* Main Content - Responsive Spacing */}
+          <div className="space-y-4 sm:space-y-8">
+            {/* Title and Badges - Responsive */}
+            <div className="glass-card p-4 sm:p-6 lg:p-8 rounded-xl">
+              <div className="flex items-center flex-wrap gap-2 mb-3 sm:mb-4">
                 {demand.productCategory && (
-                  <Badge variant="secondary">{demand.productCategory}</Badge>
+                  <Badge variant="secondary" className="text-xs">{demand.productCategory}</Badge>
                 )}
                 {demand.serviceCategory && (
-                  <Badge variant="secondary">{demand.serviceCategory}</Badge>
+                  <Badge variant="secondary" className="text-xs">{demand.serviceCategory}</Badge>
                 )}
-                <Badge className="bg-orange-500 text-white">DEMAND</Badge>
+                <Badge className="bg-orange-500 text-white text-xs">DEMAND</Badge>
               </div>
 
-              <h1 className="text-4xl font-bold mb-0">{demand.title}</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-0 leading-tight">{demand.title}</h1>
             </div>
 
-            {/* Description - Full Width */}
+            {/* Description - Responsive */}
             {demand.description && (
-              <div className="glass-card p-8 rounded-xl">
-                <h3 className="text-xl font-semibold mb-4">Description</h3>
-                <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed text-lg">
+              <div className="glass-card p-4 sm:p-6 lg:p-8 rounded-xl">
+                <h3 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Description</h3>
+                <p className="text-sm sm:text-base lg:text-lg text-muted-foreground whitespace-pre-wrap leading-relaxed">
                   {demand.description}
                 </p>
               </div>
             )}
 
-            {/* User Info and Details - Side by Side Below Description */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Posted by Card */}
-              <div className="glass-card p-6 rounded-xl">
-                <h3 className="text-lg font-semibold mb-4">Posted by</h3>
-                <div className="flex items-center space-x-4 mb-4">
+            {/* User Info and Details - Responsive Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+              {/* Posted by Card - Responsive */}
+              <div className="glass-card p-4 sm:p-6 rounded-xl">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Posted by</h3>
+                <div className="flex items-center space-x-3 sm:space-x-4 mb-3 sm:mb-4">
                   <Link href={`/user/${demand.ownerId}`}>
-                    <Avatar className="w-12 h-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                    <Avatar className="w-10 h-10 sm:w-12 sm:h-12 cursor-pointer hover:ring-2 hover:ring-primary transition-all">
                       <AvatarImage src={demand.owner?.image || ''} alt={demand.owner?.name || ''} />
-                      <AvatarFallback className="bg-gradient-primary text-white">
+                      <AvatarFallback className="bg-gradient-primary text-white text-sm sm:text-base">
                         {demand.owner?.name?.charAt(0)?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Link>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <Link href={`/user/${demand.ownerId}`} className="hover:text-primary transition-colors">
-                      <p className="font-semibold">{demand.owner?.name || 'Unknown User'}</p>
+                      <p className="text-sm sm:text-base font-semibold truncate">{demand.owner?.name || 'Unknown User'}</p>
                     </Link>
-                    <p className="text-sm text-muted-foreground flex items-center">
-                      <Calendar className="w-4 h-4 mr-1" />
+                    <p className="text-xs sm:text-sm text-muted-foreground flex items-center">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       Posted on {formatDate(demand.createdAt)}
                     </p>
                   </div>
                 </div>
                 
-                {/* Contact Actions */}
+                {/* Contact Actions - Responsive */}
                 {!isOwner && (
-                  <div className="space-y-3">
+                  <div className="flex flex-col sm:flex-col space-y-2 sm:space-y-3">
                     {demand.mobileNumber && (
-                      <Button className="btn-gradient-primary w-full" asChild>
+                      <Button className="btn-gradient-primary w-full text-sm" asChild>
                         <a href={`tel:${demand.mobileNumber}`}>
                           <Phone className="w-4 h-4 mr-2" />
                           Call
                         </a>
                       </Button>
                     )}
-                    <Button variant="outline" className="glass border-white/20 w-full" asChild>
+                    <Button variant="outline" className="glass border-white/20 w-full text-sm" asChild>
                       <Link href={`/user/${demand.ownerId}`}>
                         <User className="w-4 h-4 mr-2" />
                         View Listings
@@ -246,29 +257,29 @@ export default function DemandDetailPage() {
                 )}
               </div>
 
-              {/* Demand Details Card */}
-              <div className="glass-card p-6 rounded-xl">
-                <h3 className="text-lg font-semibold mb-4">Demand Details</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Type:</span>
-                    <span className="font-medium">
+              {/* Demand Details Card - Responsive */}
+              <div className="glass-card p-4 sm:p-6 rounded-xl">
+                <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Demand Details</h3>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Type:</span>
+                    <span className="text-xs sm:text-sm font-medium">
                       {demand.productCategory ? 'Product' : demand.serviceCategory ? 'Service' : 'General'}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Posted:</span>
-                    <span className="font-medium">{formatDate(demand.createdAt)}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Posted:</span>
+                    <span className="text-xs sm:text-sm font-medium">{formatDate(demand.createdAt)}</span>
                   </div>
                   {demand.mobileNumber && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Contact:</span>
-                      <span className="font-medium">Available</span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs sm:text-sm text-muted-foreground">Contact:</span>
+                      <span className="text-xs sm:text-sm font-medium">Available</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status:</span>
-                    <Badge className="bg-green-500 text-white">Active</Badge>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Status:</span>
+                    <Badge className="bg-green-500 text-white text-xs">Active</Badge>
                   </div>
                 </div>
               </div>

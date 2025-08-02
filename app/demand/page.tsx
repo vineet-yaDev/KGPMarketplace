@@ -1,88 +1,88 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { Search, MessageSquare, Plus, Filter, X } from 'lucide-react'
-import MainLayout from '@/components/MainLayout'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Demand} from '@/lib/types'  // Import the Demand type
-import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from '@/lib/constants'  // Import the categories constants
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Search, MessageSquare, Plus, Filter, X } from 'lucide-react';
+import MainLayout from '@/components/MainLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Demand } from '@/lib/types';
+import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from '@/lib/constants';
 
 export default function DemandsPage() {
-  const [demands, setDemands] = useState<Demand[]>([])  // Use Demand type here
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All Categories')
-  const [sortBy, setSortBy] = useState('newest')
-  const [showFilters, setShowFilters] = useState(false)
+  const [demands, setDemands] = useState<Demand[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [sortBy, setSortBy] = useState('newest');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    fetchDemands()
-  }, [])
+    fetchDemands();
+  }, []);
 
   const fetchDemands = async () => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/demands')
-      const data = await response.json()
+      setLoading(true);
+      const response = await fetch('/api/demands');
+      const data = await response.json();
       
       if (response.ok) {
-        setDemands(data.demands || [])
+        setDemands(data.demands || []);
       } else {
-        console.error('Failed to fetch demands:', data.error)
+        console.error('Failed to fetch demands:', data.error);
       }
     } catch (error) {
-      console.error('Error fetching demands:', error)
+      console.error('Error fetching demands:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const filteredDemands = demands.filter((demand: Demand) => {  // Use Demand type here
+  const filteredDemands = demands.filter((demand: Demand) => {
     const matchesSearch = demand.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (demand.description && demand.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                         (demand.description && demand.description.toLowerCase().includes(searchQuery.toLowerCase()));
     
-    const demandCategory = demand.productCategory || demand.serviceCategory
-    const matchesCategory = selectedCategory === 'All Categories' || demandCategory === selectedCategory
+    const demandCategory = demand.productCategory || demand.serviceCategory;
+    const matchesCategory = selectedCategory === 'All Categories' || demandCategory === selectedCategory;
     
-    return matchesSearch && matchesCategory
-  })
+    return matchesSearch && matchesCategory;
+  });
 
-  const sortedDemands = [...filteredDemands].sort((a: Demand, b: Demand) => {  // Use Demand type here
+  const sortedDemands = [...filteredDemands].sort((a: Demand, b: Demand) => {
     switch (sortBy) {
       case 'newest':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'oldest':
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       default:
-        return 0
+        return 0;
     }
-  })
+  });
 
   const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
-    if (diffInHours < 1) return 'Just now'
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  }
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
 
   const clearFilters = () => {
-    setSelectedCategory('All Categories')
-    setSearchQuery('')
-    setSortBy('newest')
-    setShowFilters(false)
-  }
+    setSelectedCategory('All Categories');
+    setSearchQuery('');
+    setSortBy('newest');
+    setShowFilters(false);
+  };
 
-  const hasActiveFilters = selectedCategory !== 'All Categories' || searchQuery || sortBy !== 'newest'
+  const hasActiveFilters = selectedCategory !== 'All Categories' || searchQuery || sortBy !== 'newest';
 
   if (loading) {
     return (
@@ -94,7 +94,7 @@ export default function DemandsPage() {
           </div>
         </div>
       </MainLayout>
-    )
+    );
   }
 
   return (
@@ -162,7 +162,14 @@ export default function DemandsPage() {
                   <Filter className="w-5 h-5 mr-2" />
                   Filters
                   {hasActiveFilters && (
-                    <Badge className="ml-2 bg-orange-500 text-white text-xs">
+                    <Badge 
+                      className="ml-2 text-xs font-semibold px-2 py-1 rounded-full"
+                      style={{ 
+                        backgroundColor: 'rgb(249 115 22)', 
+                        color: 'white', 
+                        border: '1px solid rgb(234 88 12)' 
+                      }}
+                    >
                       {[selectedCategory !== 'All Categories', searchQuery, sortBy !== 'newest'].filter(Boolean).length}
                     </Badge>
                   )}
@@ -220,7 +227,14 @@ export default function DemandsPage() {
                 <span className="font-semibold text-white">{sortedDemands.length}</span> demand{sortedDemands.length !== 1 ? 's' : ''} found
               </p>
               {hasActiveFilters && (
-                <Badge variant="outline" className="border-primary/30 text-primary">
+                <Badge 
+                  className="font-semibold px-3 py-1 rounded-full"
+                  style={{ 
+                    backgroundColor: 'rgb(37 99 235)', 
+                    color: 'white', 
+                    border: '1px solid rgb(29 78 216)' 
+                  }}
+                >
                   Filtered
                 </Badge>
               )}
@@ -229,7 +243,7 @@ export default function DemandsPage() {
 
           {/* Demands Grid */}
           <div className="grid grid-cols-1 gap-6">
-            {sortedDemands.map((demand: Demand) => (  // Use Demand type here
+            {sortedDemands.map((demand: Demand) => (
               <Link key={demand.id} href={`/demand/${demand.id}`} className="group">
                 <Card className="glass-card hover-lift transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 border-white/10 rounded-xl overflow-hidden">
                   <CardContent className="p-0">
@@ -237,18 +251,39 @@ export default function DemandsPage() {
                       {/* Header */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-3">
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
                             {demand.productCategory && (
-                              <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                              <Badge 
+                                className="font-semibold px-3 py-1 rounded-full text-xs"
+                                style={{ 
+                                  backgroundColor: 'rgb(71 85 105)', 
+                                  color: 'white', 
+                                  border: '1px solid rgb(51 65 85)' 
+                                }}
+                              >
                                 Product: {demand.productCategory}
                               </Badge>
                             )}
                             {demand.serviceCategory && (
-                              <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                              <Badge 
+                                className="font-semibold px-3 py-1 rounded-full text-xs"
+                                style={{ 
+                                  backgroundColor: 'rgb(234 88 12)', 
+                                  color: 'white', 
+                                  border: '1px solid rgb(194 65 12)' 
+                                }}
+                              >
                                 Service: {demand.serviceCategory}
                               </Badge>
                             )}
-                            <Badge className="bg-orange-500/20 text-orange-300 border-orange-500/30">
+                            <Badge 
+                              className="font-semibold px-3 py-1 rounded-full text-xs"
+                              style={{ 
+                                backgroundColor: 'rgb(217 119 6)', 
+                                color: 'white', 
+                                border: '1px solid rgb(180 83 9)' 
+                              }}
+                            >
                               DEMAND
                             </Badge>
                           </div>
@@ -338,5 +373,5 @@ export default function DemandsPage() {
         </div>
       </div>
     </MainLayout>
-  )
+  );
 }

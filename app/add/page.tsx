@@ -1,10 +1,9 @@
 import { Suspense } from 'react';
-import SellContent from './ SellContent';
-
+import AddContent from './AddContent';
 export default function AddPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading your listing data...</div>}>
-      <SellContent />
+      <AddContent />
     </Suspense>
   );
 }

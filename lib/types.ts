@@ -166,6 +166,7 @@ export interface ProductFormData {
   addressHall: KGPHalls;
   mobileNumber: string;
   ecommerceLink: string;
+  invoiceImageUrl: string;
   seasonality: ProductSeasonality;
   images: string[];
 }
