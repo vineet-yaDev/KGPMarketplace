@@ -239,7 +239,7 @@ export default function ProductDetailPage() {
             <Button 
               variant="ghost" 
               onClick={() => router.back()}
-              className="glass hover:bg-white/10 flex-shrink-0"
+              className="glass flex-shrink-0"
               size="sm"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -293,7 +293,7 @@ export default function ProductDetailPage() {
             {isDeleting ? 'Deleting...' : 'Delete'}
           </span>
           <span className="xs:hidden">
-            {isDeleting ? '...' : 'Delete'}
+            {isDeleting ? '...' : 'Del'}
           </span>
         </Button>
       </AlertDialogTrigger>
@@ -358,7 +358,7 @@ export default function ProductDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={prevImage}
-                          className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10 p-2"
+                          className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 glass z-10 p-2"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
@@ -366,7 +366,7 @@ export default function ProductDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={nextImage}
-                          className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10 p-2"
+                          className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 glass z-10 p-2"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -377,7 +377,7 @@ export default function ProductDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 glass hover:bg-white/20 z-10 p-2"
+                      className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 glass z-10 p-2"
                       onClick={toggleFullscreen}
                       title="View Fullscreen"
                     >
@@ -619,32 +619,33 @@ export default function ProductDetailPage() {
                 variant="ghost"
                 size="lg"
                 onClick={toggleFullscreen}
-                className="absolute top-2 right-2 sm:top-6 sm:right-6 text-white hover:bg-white/20 z-20 p-2 sm:p-3"
+                className="absolute top-2 right-2 sm:top-6 sm:right-6 text-white z-20 p-2 sm:p-3"
               >
                 <X className="w-6 h-6 sm:w-8 sm:h-8" />
               </Button>
 
               {/* Navigation Arrows - Responsive */}
-              {product.images && product.images.length > 1 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="lg"
-                    onClick={prevImage}
-                    className="absolute left-2 sm:left-6 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20 p-2 sm:p-4"
-                  >
-                    <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="lg"
-                    onClick={nextImage}
-                    className="absolute right-2 sm:right-6 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20 p-2 sm:p-4"
-                  >
-                    <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10" />
-                  </Button>
-                </>
-              )}
+{product.images && product.images.length > 1 && (
+  <>
+    <Button
+      variant="ghost"
+      size="lg"
+      onClick={prevImage}
+      className="absolute left-2 sm:left-6 top-1/2 transform -translate-y-1/2 text-black border border-black bg-white shadow-lg z-20 p-2 sm:p-4"
+    >
+      <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10" />
+    </Button>
+    <Button
+      variant="ghost"
+      size="lg"
+      onClick={nextImage}
+      className="absolute right-2 sm:right-6 top-1/2 transform -translate-y-1/2 text-black border border-black bg-white shadow-lg z-20 p-2 sm:p-4"
+    >
+      <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10" />
+    </Button>
+  </>
+)}
+
 
               {/* Main Image Container */}
               <div className="w-full h-full flex items-center justify-center p-4 sm:p-20">
@@ -674,7 +675,7 @@ export default function ProductDetailPage() {
                   variant="ghost" 
                   onClick={zoomOut} 
                   disabled={zoom <= 0.5}
-                  className="text-white hover:bg-white/20 p-1 sm:p-2"
+                  className="text-white p-1 sm:p-2"
                 >
                   <ZoomOut className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
@@ -687,7 +688,7 @@ export default function ProductDetailPage() {
                   variant="ghost" 
                   onClick={zoomIn} 
                   disabled={zoom >= 3}
-                  className="text-white hover:bg-white/20 p-1 sm:p-2"
+                  className="text-white p-1 sm:p-2"
                 >
                   <ZoomIn className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
@@ -709,7 +710,7 @@ export default function ProductDetailPage() {
                     <Button 
                       variant="ghost" 
                       onClick={() => setZoom(1)}
-                      className="text-white hover:bg-white/20 text-xs sm:text-sm px-2 py-1 sm:px-3"
+                      className="text-white text-xs sm:text-sm px-2 py-1 sm:px-3"
                     >
                       Reset
                     </Button>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image' // Import Image component
-import { ArrowLeft, MapPin, Calendar, ChevronLeft, ChevronRight, Star, Clock, ExternalLink, Edit, Trash2, AlertTriangle, Maximize2, ZoomIn, ZoomOut, X, Package, MessageSquare } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, ChevronLeft, ChevronRight, Clock, ExternalLink, Edit, Trash2, AlertTriangle, Maximize2, ZoomIn, ZoomOut, X, Package, MessageSquare } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -211,10 +211,10 @@ export default function ServiceDetailPage() {
             <Button 
               variant="ghost" 
               onClick={() => router.back()}
-              className="glass hover:bg-white/10"
+              className="glass"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Services
+              Back
             </Button>
 
 
@@ -291,7 +291,7 @@ export default function ServiceDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={prevImage}
-                          className="absolute left-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10"
+                          className="absolute left-2 top-1/2 transform -translate-y-1/2 glass z-10"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
@@ -299,7 +299,7 @@ export default function ServiceDetailPage() {
                           variant="ghost"
                           size="sm"
                           onClick={nextImage}
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 glass hover:bg-white/20 z-10"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 glass z-10"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -311,7 +311,7 @@ export default function ServiceDetailPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="absolute bottom-2 right-2 glass hover:bg-white/20 z-10"
+                      className="absolute bottom-2 right-2 glass z-10"
                       onClick={toggleFullscreen}
                       title="View Fullscreen"
                     >
@@ -360,10 +360,6 @@ export default function ServiceDetailPage() {
               <div>
                 <div className="flex items-center flex-wrap gap-2 mb-2">
                   <Badge variant="secondary">{SERVICE_CATEGORY_TEXT_MAP[service.category]}</Badge>
-                  <div className="flex items-center">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">4.8</span> {/* This seems like a static rating */}
-                  </div>
                 </div>
                 <h1 className="text-3xl font-bold mb-4">{service.title}</h1>
                 
@@ -431,7 +427,7 @@ export default function ServiceDetailPage() {
 
 
               {/* Service Provider Info */}
-              <div className="glass-card p-6 rounded-lg">
+              <div className="glass-card p-4 rounded-lg">
                 <h3 className="text-lg font-semibold mb-4">Service Provider</h3>
                 <div className="flex items-center space-x-4">
                   <Link href={`/user/${service.ownerId}`}>
@@ -464,7 +460,7 @@ export default function ServiceDetailPage() {
           rel="noopener noreferrer"
         >
           <MessageSquare className="w-4 h-4 mr-2" />
-          WhatsApp Seller
+          WhatsApp
         </a>
       </Button>
     )}
@@ -490,7 +486,7 @@ export default function ServiceDetailPage() {
                 variant="ghost"
                 size="lg"
                 onClick={toggleFullscreen}
-                className="absolute top-6 right-6 text-white hover:bg-white/20 z-20 p-3"
+                className="absolute top-6 right-6 text-white z-20 p-3"
               >
                 <X className="w-8 h-8" />
               </Button>
@@ -502,7 +498,7 @@ export default function ServiceDetailPage() {
                   variant="ghost"
                   size="lg"
                   onClick={prevImage}
-                  className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20 p-4"
+                  className="absolute left-6 top-1/2 transform -translate-y-1/2 text-white z-20 p-4"
                 >
                   <ChevronLeft className="w-10 h-10" />
                 </Button>
@@ -515,7 +511,7 @@ export default function ServiceDetailPage() {
                   variant="ghost"
                   size="lg"
                   onClick={nextImage}
-                  className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white hover:bg-white/20 z-20 p-4"
+                  className="absolute right-6 top-1/2 transform -translate-y-1/2 text-white z-20 p-4"
                 >
                   <ChevronRight className="w-10 h-10" />
                 </Button>
@@ -551,7 +547,7 @@ export default function ServiceDetailPage() {
                   variant="ghost" 
                   onClick={zoomOut} 
                   disabled={zoom <= 0.5}
-                  className="text-white hover:bg-white/20 p-2"
+                  className="text-white p-2"
                 >
                   <ZoomOut className="w-5 h-5" />
                 </Button>
@@ -564,7 +560,7 @@ export default function ServiceDetailPage() {
                   variant="ghost" 
                   onClick={zoomIn} 
                   disabled={zoom >= 3}
-                  className="text-white hover:bg-white/20 p-2"
+                  className="text-white p-2"
                 >
                   <ZoomIn className="w-5 h-5" />
                 </Button>
@@ -588,7 +584,7 @@ export default function ServiceDetailPage() {
                     <Button 
                       variant="ghost" 
                       onClick={() => setZoom(1)}
-                      className="text-white hover:bg-white/20 text-sm px-3 py-1"
+                      className="text-white text-sm px-3 py-1"
                     >
                       Reset
                     </Button>

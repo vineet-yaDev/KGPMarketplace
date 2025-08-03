@@ -142,7 +142,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 <Button 
   variant="ghost" 
   size="sm" 
-  className="glass-button hover:bg-white/20 dark:hover:bg-white/10 p-2"
+  className="glass-button dark:hover:bg-white/10 p-2"
   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
 >
   <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -155,7 +155,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full glass-button hover:bg-white/20 dark:hover:bg-white/10">
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full glass-button dark:hover:bg-white/10">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.image || ''} alt={user?.name || ''} />
                         <AvatarFallback className="bg-gradient-primary text-white">
@@ -198,7 +198,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   onClick={() => signIn('google', { callbackUrl: '/' })}
                   variant="outline" 
                   size="sm" 
-                  className="glass-button border-white/20 hover:bg-white/20 dark:hover:bg-white/10 text-foreground hover:text-foreground"
+                  className="glass-button border-white/20 dark:hover:bg-white/10 text-foreground hover:text-foreground"
                 >
                   <User className="h-4 w-4 mr-1" />
                   <span className="hidden sm:inline">Login</span>
@@ -209,7 +209,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="lg:hidden glass-button hover:bg-white/20 dark:hover:bg-white/10 p-2"
+                className="lg:hidden glass-button dark:hover:bg-white/10 p-2"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
                 {isMobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}

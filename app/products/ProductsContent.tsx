@@ -652,9 +652,9 @@ export default function ProductsContent() {
                               {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
                             </Badge>
                           )}
-                          <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
+                          {/* <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
                             {PRODUCT_TYPE_TEXT_MAP[product.productType] || formatEnumName(product.productType || 'USED')}
-                          </Badge>
+                          </Badge> */}
                           {/* Green tick for invoice URL */}
                           {product.invoiceImageUrl && (
                             <div className="absolute bottom-2 right-2 bg-green-500 text-white rounded-full p-1">
@@ -667,24 +667,28 @@ export default function ProductsContent() {
                           <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
                             {product.description || 'No description available'}
                           </p>
-                          <div className="flex items-center space-x-2 mb-2 flex-wrap">
-                            {product.price && (
-                              <span className="font-bold text-base sm:text-lg text-primary">
-                                {formatCurrency(product.price)}
-                              </span>
-                            )}
-                            {product.originalPrice && (
-                              <span className="text-xs sm:text-sm text-muted-foreground line-through">
-                                {formatCurrency(product.originalPrice)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <Badge variant="secondary" className="text-xs">Condition: {product.condition}/5</Badge>
-                            {product.addressHall && (
-                              <span className="text-xs text-muted-foreground">{product.addressHall}</span>
-                            )}
-                          </div>
+                          <div className="flex items-center justify-between space-x-2 mb-2 flex-wrap">
+  <div className="flex items-center space-x-2">
+    {product.price && (
+      <span className="font-bold text-base sm:text-lg text-primary">
+        {formatCurrency(product.price)}
+      </span>
+    )}
+    {product.originalPrice && (
+      <span className="text-xs sm:text-sm text-muted-foreground line-through">
+        {formatCurrency(product.originalPrice)}
+      </span>
+    )}
+  </div>
+  
+  <div className="flex items-center justify-end flex-wrap gap-2">
+    <Badge variant="secondary" className="text-xs">Condition: {product.condition}/5</Badge>
+    {/* {product.addressHall && (
+      <span className="text-xs text-muted-foreground">{product.addressHall}</span>
+    )} */}
+  </div>
+</div>
+
                         </CardContent>
                       </Card>
                     </Link>
@@ -714,9 +718,9 @@ export default function ProductsContent() {
                               {Math.round((1 - product.price / product.originalPrice) * 100)}%
                             </Badge>
                           )}
-                          <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
+                          {/* <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
                             {PRODUCT_TYPE_TEXT_MAP[product.productType]?.split(' ')[0] || formatEnumName(product.productType || 'USED')}
-                          </Badge>
+                          </Badge> */}
                           {/* Green tick for invoice URL */}
                           {product.invoiceImageUrl && (
                             <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-0.5">
@@ -736,9 +740,9 @@ export default function ProductsContent() {
                               {product.condition}/5
                             </Badge>
                           </div>
-                          {product.addressHall && (
+                          {/* {product.addressHall && (
                             <p className="text-xs text-muted-foreground truncate">{product.addressHall}</p>
-                          )}
+                          )} */}
                         </CardContent>
                       </Card>
                     </Link>
@@ -748,11 +752,11 @@ export default function ProductsContent() {
                 <div className="space-y-3 sm:space-y-4">
                   {sortedProducts.map((product: Product) => (
                     <Link key={product.id} href={`/products/${product.id}`} className="group">
-                      <Card className="glass-card hover-lift overflow-hidden">
+                      <Card className="glass-card hover-lift overflow-hidden mb-2">
                         <CardContent className="p-3 sm:p-6">
                           <div className="flex gap-3 sm:gap-4">
                             {/* Larger Image Container */}
-                            <div className="w-24 h-20 sm:w-32 sm:h-24 md:w-40 md:h-32 relative overflow-hidden rounded-lg flex-shrink-0">
+                            <div className="w-24 h-24 sm:w-32 sm:h-24 md:w-40 md:h-32 relative overflow-hidden rounded-lg flex-shrink-0">
                               {product.images && product.images.length > 0 ? (
                                 <Image
                                   src={product.images[0]}
@@ -768,14 +772,14 @@ export default function ProductsContent() {
                               )}
                               
                               {/* Product Type Badge on Image */}
-                              <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
+                              {/* <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
                                 {PRODUCT_TYPE_TEXT_MAP[product.productType] || formatEnumName(product.productType || 'USED')}
-                              </Badge>
+                              </Badge> */}
                               
                               {/* Status Badge on Image */}
-                              <Badge className="absolute top-1 right-1 bg-secondary text-xs px-1 py-0.5">
+                              {/* <Badge className="absolute top-1 right-1 bg-secondary text-xs px-1 py-0.5">
                                 {formatEnumName(product.status || 'LISTED')}
-                              </Badge>
+                              </Badge> */}
                               
                               {/* Green tick for invoice URL */}
                               {product.invoiceImageUrl && (
@@ -808,34 +812,30 @@ export default function ProductsContent() {
                                 {product.description || 'No description available'}
                               </p>
                               
-                              {/* Bottom Row - Price and Details */}
-                              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-                                {/* Left side - Price */}
-                                <div className="flex items-baseline space-x-2 flex-wrap">
-                                  {product.price && (
-                                    <span className="font-bold text-base sm:text-lg md:text-xl text-primary">
-                                      {formatCurrency(product.price)}
-                                    </span>
-                                  )}
-                                  {product.originalPrice && (
-                                    <span className="text-xs sm:text-sm text-muted-foreground line-through">
-                                      {formatCurrency(product.originalPrice)}
-                                    </span>
-                                  )}
-                                </div>
-                                
-                                {/* Right side - Condition and Hall */}
-                                <div className="flex items-center space-x-2 flex-wrap text-xs sm:text-sm">
-                                  <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                                    Condition: {product.condition}/5
-                                  </Badge>
-                                  {product.addressHall && (
-                                    <span className="text-muted-foreground whitespace-nowrap">
-                                      {product.addressHall}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+{/* Bottom Row - Price and Details */}
+<div className="flex flex-wrap items-center space-x-2 justify-between gap-2">
+  {/* Left side - Price */}
+  <div className="flex items-baseline space-x-2 flex-wrap">
+    {product.price && (
+      <span className="font-bold text-base sm:text-lg md:text-xl text-primary">
+        {formatCurrency(product.price)}
+      </span>
+    )}
+    {product.originalPrice && (
+      <span className="text-xs sm:text-sm text-muted-foreground line-through">
+        {formatCurrency(product.originalPrice)}
+      </span>
+    )}
+  </div>
+  
+  {/* Right side - Badge */}
+  <div className="flex justify-end sm:justify-center">
+    <Badge variant="secondary" className="text-xs whitespace-nowrap">
+      {product.condition}/5
+    </Badge>
+  </div>
+</div>
+
                             </div>
                           </div>
                         </CardContent>

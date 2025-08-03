@@ -46,29 +46,61 @@ enum KGPHalls {
   MT
 }
 
+//Product categories for college products
+//enum ProductCategory {
+//  ELECTRONICS
+//  BOOKS
+//  CLOTHING
+//  FURNITURE
+//  SPORTS
+//  VEHICLES
+//  FOOD
+//  STATIONERY
+//  OTHER
+//}
+//
+//Service categories related to college services
+//enum ServiceCategory {
+//  TUTORING
+//  REPAIR
+//  DELIVERY
+//  CLEANING
+//  PHOTOGRAPHY
+//  CODING
+//  DESIGN
+//  CONSULTING
+//  OTHER
+//}
+
+
+
 enum ProductCategory {
-  ELECTRONICS
-  BOOKS
-  CLOTHING
-  FURNITURE
-  SPORTS
-  VEHICLES
-  FOOD
-  STATIONERY
+  ELECTRONICS,
+  BOOKS,
+  STATIONERY,
+  FURNITURE,
+  HOUSEHOLD,
+  SPORTS,
+  CYCLE,
+  ACCESSORIES,
+  MERCHANDISE,
+  TICKETS,
   OTHER
 }
 
+
+
 enum ServiceCategory {
-  TUTORING
-  REPAIR
-  DELIVERY
-  CLEANING
-  PHOTOGRAPHY
-  CODING
-  DESIGN
-  CONSULTING
+  ACADEMICS,
+  CAREERS,
+  COMPETITION,
+  FREELANCING,
+  DESIGN,
+  CODING,
+  VENDORS,
   OTHER
 }
+
 
 // --- User Model (JWT Compatible) ---
 model User {

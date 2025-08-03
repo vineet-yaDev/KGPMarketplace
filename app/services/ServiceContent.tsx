@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, Grid, List, X, Filter, Star, MapPin, Clock, Check } from 'lucide-react';
+import { Search, Grid, List, X, Filter, Check } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -614,12 +614,12 @@ export default function ServicesContent() {
                           <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
                             {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
                           </Badge>
-                          {service.experienceYears !== undefined && service.experienceYears !== null && (
+                          {/* {service.experienceYears !== undefined && service.experienceYears !== null && (
                             <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
                               <Clock className="w-3 h-3 mr-1" />
                               {service.experienceYears}+ yrs
                             </Badge>
-                          )}
+                          )} */}
                           {/* Green tick for portfolio URL */}
                           {service.portfolioUrl && (
                             <div className="absolute bottom-2 right-2 bg-green-500 text-white rounded-full p-1">
@@ -643,14 +643,14 @@ export default function ServicesContent() {
                               )}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between flex-wrap gap-2">
+                          {/* <div className="flex items-center justify-between flex-wrap gap-2">
                             {service.addressHall && (
                               <div className="flex items-center text-xs text-muted-foreground">
                                 <MapPin className="w-3 h-3 mr-1" />
                                 {service.addressHall}
                               </div>
                             )}
-                          </div>
+                          </div> */}
                         </CardContent>
                       </Card>
                     </Link>
@@ -678,11 +678,11 @@ export default function ServicesContent() {
                           <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
                             {SERVICE_CATEGORY_TEXT_MAP[service.category]?.split(' ')[0] || formatEnumName(service.category || 'OTHER')}
                           </Badge>
-                          {service.experienceYears !== undefined && service.experienceYears !== null && (
+                          {/* {service.experienceYears !== undefined && service.experienceYears !== null && (
                             <Badge className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5">
                               {service.experienceYears}+
                             </Badge>
-                          )}
+                          )} */}
                           {/* Green tick for portfolio URL */}
                           {service.portfolioUrl && (
                             <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-0.5">
@@ -694,15 +694,18 @@ export default function ServicesContent() {
                           <h3 className="font-semibold text-xs line-clamp-2 mb-1 leading-tight">{service.title}</h3>
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-bold text-sm text-primary">
-                              {service.minPrice ? 
-                                `₹${service.minPrice < 1000 ? service.minPrice : (service.minPrice / 1000).toFixed(1) + 'K'}` 
-                                : 'Quote'
-                              }
+                              {service.minPrice && service.maxPrice ? (
+                                `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                              ) : service.minPrice ? (
+                                `From ${formatCurrency(service.minPrice)}`
+                              ) : (
+                                'Price on request'
+                              )}
                             </span>
                           </div>
-                          {service.addressHall && (
+                          {/* {service.addressHall && (
                             <p className="text-xs text-muted-foreground truncate">{service.addressHall}</p>
-                          )}
+                          )} */}
                         </CardContent>
                       </Card>
                     </Link>
@@ -712,11 +715,11 @@ export default function ServicesContent() {
                 <div className="space-y-3 sm:space-y-4">
                   {sortedServices.map((service: Service) => (
                     <Link key={service.id} href={`/services/${service.id}`} className="group">
-                      <Card className="glass-card hover-lift overflow-hidden">
+                      <Card className="glass-card hover-lift overflow-hidden mb-2">
                         <CardContent className="p-3 sm:p-6">
                           <div className="flex gap-3 sm:gap-4">
                             {/* Larger Image Container */}
-                            <div className="w-24 h-20 sm:w-32 sm:h-24 md:w-40 md:h-32 relative overflow-hidden rounded-lg flex-shrink-0">
+                            <div className="w-28 h-32 sm:w-32 sm:h-24 md:w-40 md:h-32 relative overflow-hidden rounded-lg flex-shrink-0">
                               {service.images && service.images.length > 0 ? (
                                 <Image
                                   src={service.images[0]}
@@ -731,18 +734,13 @@ export default function ServicesContent() {
                                 </div>
                               )}
                               
-                              {/* Category Badge on Image */}
-                              <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
-                                {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
-                              </Badge>
-                              
                               {/* Experience Badge on Image */}
-                              {service.experienceYears !== undefined && service.experienceYears !== null && (
+                              {/* {service.experienceYears !== undefined && service.experienceYears !== null && (
                                 <Badge className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5">
                                   <Clock className="w-3 h-3 mr-1" />
                                   {service.experienceYears}+ yrs
                                 </Badge>
-                              )}
+                              )} */}
                               
                               {/* Green tick for portfolio URL */}
                               {service.portfolioUrl && (
@@ -761,14 +759,6 @@ export default function ServicesContent() {
                                     {service.title}
                                   </h3>
                                 </div>
-                                
-                                {/* Right side - Portfolio Badge */}
-                                {service.portfolioUrl && (
-                                  <Badge className="bg-green-500 text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap flex items-center gap-1">
-                                    <Star className="w-3 h-3" />
-                                    Portfolio
-                                  </Badge>
-                                )}
                               </div>
                               
                               {/* Description */}
@@ -792,14 +782,19 @@ export default function ServicesContent() {
                                 </div>
                                 
                                 {/* Right side - Hall */}
-                                <div className="flex items-center space-x-2 flex-wrap text-xs sm:text-sm">
+                                {/* <div className="flex items-center space-x-2 flex-wrap text-xs sm:text-sm">
                                   {service.addressHall && (
                                     <div className="flex items-center text-muted-foreground whitespace-nowrap">
                                       <MapPin className="w-3 h-3 mr-1" />
                                       {service.addressHall}
                                     </div>
                                   )}
-                                </div>
+                                </div> */}
+                                                                {/* Category Badge */}
+<Badge className="bg-primary text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap flex items-center justify-center">
+  {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
+</Badge>
+
                               </div>
                             </div>
                           </div>

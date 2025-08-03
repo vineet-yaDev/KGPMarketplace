@@ -318,16 +318,6 @@ export default function DemandsPage() {
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="flex items-center space-x-3">
-                          <Button 
-                            size="sm" 
-                            className="btn-gradient-primary opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"
-                          >
-                            <MessageSquare className="w-4 h-4 mr-2" />
-                            Respond
-                          </Button>
-                        </div>
                       </div>
                     </div>
                   </CardContent>
