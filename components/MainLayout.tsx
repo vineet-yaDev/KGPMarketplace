@@ -16,9 +16,7 @@ import {
   MessageSquare,
   Sun,
   Moon,
-  Monitor,
   Package,
-  Settings,
   LogOut,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -39,7 +37,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { isAuthenticated, user } = useAuth()
-  const { setTheme } = useTheme()
+  const { theme, setTheme } = useTheme()
   const router = useRouter()
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
@@ -71,7 +69,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   // Updated profile menu items logic - only show if authenticated
   const profileMenuItems = isAuthenticated ? [
     { href: `/user/${user?.id}`, label: 'My Listings', icon: Package },
-    { href: '/profile', label: 'Profile', icon: Settings },
+    // { href: '/profile', label: 'Profile', icon: Settings },
   ] : []
 
   return (
@@ -140,31 +138,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <span className="xs:inline mr-2">Add</span>
                 </Button>
               )}
+{/* Theme Toggle - Simple Button */}
+<Button 
+  variant="ghost" 
+  size="sm" 
+  className="glass-button hover:bg-white/20 dark:hover:bg-white/10 p-2"
+  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+>
+  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+  <span className="sr-only">Toggle theme</span>
+</Button>
 
-              {/* Theme Toggle - Responsive */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="glass-button hover:bg-white/20 dark:hover:bg-white/10 p-2">
-                    <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">Toggle theme</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="glass-dropdown border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl">
-                  <DropdownMenuItem onClick={() => setTheme('light')} className="hover:bg-black/10 dark:hover:bg-white/10">
-                    <Sun className="h-4 w-4 mr-2" />
-                    Light
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('dark')} className="hover:bg-black/10 dark:hover:bg-white/10">
-                    <Moon className="h-4 w-4 mr-2" />
-                    Dark
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('system')} className="hover:bg-black/10 dark:hover:bg-white/10">
-                    <Monitor className="h-4 w-4 mr-2" />
-                    System
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
 
               {/* User Menu - Responsive */}
               {isAuthenticated ? (
@@ -323,26 +308,37 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </main>
 
       {/* Footer - Responsive */}
-      <footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
-        <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
-          <div className="text-center space-y-3 sm:space-y-4">
-            <div className="flex items-center justify-center space-x-2">
-              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-              </div>
-              <span className="text-base sm:text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
-                KGP Marketplace
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Exclusive marketplace for IIT Kharagpur students
-            </p>
-            <p className="text-xs text-muted-foreground">
-              © 2024 KGP Marketplace. All rights reserved.
-            </p>
-          </div>
+<footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
+  <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
+    <div className="text-center space-y-3 sm:space-y-4">
+      <div className="flex items-center justify-center space-x-2">
+        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
+          <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
         </div>
-      </footer>
+        <span className="text-base sm:text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
+          KGP Marketplace
+        </span>
+      </div>
+
+      {/* About Us Button */}
+      <div className="flex justify-center py-2">
+        <Link href="/about">
+          <Button className="bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 hover:from-emerald-500 hover:via-purple-500 hover:to-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-500 ease-in-out border border-white/20 backdrop-blur-sm">
+            About Us
+          </Button>
+        </Link>
+      </div>
+
+      <p className="text-xs sm:text-sm text-muted-foreground">
+        Exclusive marketplace for IIT Kharagpur students
+      </p>
+      <p className="text-xs text-muted-foreground">
+        © 2024 KGP Marketplace. All rights reserved.
+      </p>
+    </div>
+  </div>
+</footer>
+
     </div>
   )
 }

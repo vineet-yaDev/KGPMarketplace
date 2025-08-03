@@ -33,6 +33,7 @@ interface FilterDropdownProps {
   onValueChange: (value: string) => void;
   options: readonly (string | { value: string | number; label: string })[];
   placeholder: string;
+  isMobile?: boolean;
 }
 
 interface FilterState {
@@ -62,26 +63,48 @@ export default function ServicesContent() {
   const router = useRouter();
   const filterModalRef = useRef<HTMLDivElement>(null);
 
-  // Close mobile filter when clicking outside
+  // Fixed click outside handler for mobile modal
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
-        setShowMobileFilters(false);
+      const target = event.target as Node
+      
+      // Don't close if clicking on select content or trigger
+      if (target && (
+        (target as Element).closest('[data-radix-select-content]') ||
+        (target as Element).closest('[data-radix-select-trigger]') ||
+        (target as Element).closest('[data-radix-select-item]') ||
+        (target as Element).closest('[data-radix-popper-content-wrapper]') ||
+        (target as Element).closest('[data-radix-select-viewport]')
+      )) {
+        return
       }
-    };
+      
+      if (filterModalRef.current && !filterModalRef.current.contains(target)) {
+        setShowMobileFilters(false)
+      }
+    }
 
     if (showMobileFilters) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Add a small delay to prevent immediate closing
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside)
+      }, 100)
+      
       // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden'
+      
+      return () => {
+        clearTimeout(timeoutId)
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.body.style.overflow = 'unset'
+      }
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = 'unset'
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.body.style.overflow = 'unset';
-    };
+      document.body.style.overflow = 'unset'
+    }
   }, [showMobileFilters]);
 
   // Initialize filters from URL params
@@ -158,7 +181,7 @@ export default function ServicesContent() {
     }
   }
 
-  const handleFilterChange = (filterType: string, value: string | number) => {
+  const handleFilterChange = (filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters: FilterState = {
       category: selectedCategory,
       hall: selectedHall,
@@ -202,7 +225,15 @@ export default function ServicesContent() {
         break;
     }
 
-    updateURL(filters);
+    // Update URL immediately for desktop, but delay for mobile to prevent modal closing
+    if (isMobile) {
+      // Small delay to allow the select to close properly first
+      setTimeout(() => {
+        updateURL(filters);
+      }, 50);
+    } else {
+      updateURL(filters);
+    }
   }
 
   const clearFilters = () => {
@@ -282,19 +313,23 @@ export default function ServicesContent() {
     );
   }
 
-  const FilterDropdown = ({ label, value, onValueChange, options, placeholder }: FilterDropdownProps) => (
-    <div className="mb-4">
+  const FilterDropdown = ({ label, value, onValueChange, options, placeholder}: FilterDropdownProps) => (
+    <div className="mb-4" onClick={(e) => e.stopPropagation()}>
       <Label className="text-sm font-medium mb-2 block">{label}</Label>
-      <Select value={value || "all"} onValueChange={onValueChange}>
+      <Select 
+        value={value || "all"} 
+        onValueChange={(val) => onValueChange(val)}
+      >
         <SelectTrigger className="glass border-white/20">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="glass">
-          <SelectItem value="all">All {label}</SelectItem>
+        <SelectContent className="glass" data-radix-select-content sideOffset={5}>
+          <SelectItem value="all" data-radix-select-item>All {label}</SelectItem>
           {options.map((option) => (
             <SelectItem 
               key={typeof option === 'string' ? option : option.value} 
               value={typeof option === 'string' ? option : option.value.toString()}
+              data-radix-select-item
             >
               {typeof option === 'string' ? formatEnumName(option) : option.label}
             </SelectItem>
@@ -807,70 +842,75 @@ export default function ServicesContent() {
                 </Button>
               </div>
 
-              {/* Mobile filter content - same filters as desktop */}
-              <FilterDropdown
-                label="Category"
-                value={selectedCategory}
-                onValueChange={(value: string) => handleFilterChange('category', value)}
-                options={SERVICE_CATEGORIES}
-                placeholder="Select category"
-              />
+              {/* Mobile filter content - Prevent event propagation */}
+              <div onClick={(e) => e.stopPropagation()}>
+                <FilterDropdown
+                  label="Category"
+                  value={selectedCategory}
+                  onValueChange={(value: string) => handleFilterChange('category', value, true)}
+                  options={SERVICE_CATEGORIES}
+                  placeholder="Select category"
+                  isMobile={true}
+                />
 
-              <FilterDropdown
-                label="Hall"
-                value={selectedHall}
-                onValueChange={(value: string) => handleFilterChange('hall', value)}
-                options={HALLS}
-                placeholder="Select hall"
-              />
+                <FilterDropdown
+                  label="Hall"
+                  value={selectedHall}
+                  onValueChange={(value: string) => handleFilterChange('hall', value, true)}
+                  options={HALLS}
+                  placeholder="Select hall"
+                  isMobile={true}
+                />
 
-              <FilterDropdown
-                label="Experience"
-                value={selectedExperienceRange}
-                onValueChange={(value: string) => handleFilterChange('experience', value)}
-                options={EXPERIENCE_RANGES}
-                placeholder="Select experience"
-              />
+                <FilterDropdown
+                  label="Experience"
+                  value={selectedExperienceRange}
+                  onValueChange={(value: string) => handleFilterChange('experience', value, true)}
+                  options={EXPERIENCE_RANGES}
+                  placeholder="Select experience"
+                  isMobile={true}
+                />
 
-              <Separator className="my-6" />
+                <Separator className="my-6" />
 
-              {/* Price Range Sliders */}
-              <div className="mb-6">
-                <Label className="text-sm font-medium mb-3 block">
-                  Min Price: {formatCurrency(minPrice[0])}
-                </Label>
-                <div className="px-2">
-                  <Slider
-                    value={minPrice}
-                    onValueChange={(value) => handleFilterChange('minPrice', value[0])}
-                    max={5000}
-                    min={0}
-                    step={100}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>₹0</span>
-                    <span>₹5,000</span>
+                {/* Price Range Sliders */}
+                <div className="mb-6">
+                  <Label className="text-sm font-medium mb-3 block">
+                    Min Price: {formatCurrency(minPrice[0])}
+                  </Label>
+                  <div className="px-2">
+                    <Slider
+                      value={minPrice}
+                      onValueChange={(value) => handleFilterChange('minPrice', value[0], true)}
+                      max={5000}
+                      min={0}
+                      step={100}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>₹0</span>
+                      <span>₹5,000</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mb-6">
-                <Label className="text-sm font-medium mb-3 block">
-                  Max Price: {formatCurrency(maxPrice[0])}
-                </Label>
-                <div className="px-2">
-                  <Slider
-                    value={maxPrice}
-                    onValueChange={(value) => handleFilterChange('maxPrice', value[0])}
-                    max={50000}
-                    min={1000}
-                    step={500}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>₹1,000</span>
-                    <span>₹50,000</span>
+                <div className="mb-6">
+                  <Label className="text-sm font-medium mb-3 block">
+                    Max Price: {formatCurrency(maxPrice[0])}
+                  </Label>
+                  <div className="px-2">
+                    <Slider
+                      value={maxPrice}
+                      onValueChange={(value) => handleFilterChange('maxPrice', value[0], true)}
+                      max={50000}
+                      min={1000}
+                      step={500}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>₹1,000</span>
+                      <span>₹50,000</span>
+                    </div>
                   </div>
                 </div>
               </div>

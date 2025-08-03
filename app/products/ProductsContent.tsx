@@ -38,6 +38,7 @@ interface FilterDropdownProps {
   onValueChange: (value: string) => void;
   options: readonly (string | { value: string | number; label: string })[];
   placeholder: string;
+  isMobile?: boolean;
 }
 
 export default function ProductsContent() {
@@ -59,24 +60,44 @@ export default function ProductsContent() {
   const router = useRouter()
   const filterModalRef = useRef<HTMLDivElement>(null)
 
-  // Close mobile filter when clicking outside
+  // Close mobile filter when clicking outside - but not when clicking on select items
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (filterModalRef.current && !filterModalRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      
+      // Don't close if clicking on select content or trigger
+      if (target && (
+        (target as Element).closest('[data-radix-select-content]') ||
+        (target as Element).closest('[data-radix-select-trigger]') ||
+        (target as Element).closest('[data-radix-select-item]')
+      )) {
+        return
+      }
+      
+      if (filterModalRef.current && !filterModalRef.current.contains(target)) {
         setShowMobileFilters(false)
       }
     }
 
     if (showMobileFilters) {
-      document.addEventListener('mousedown', handleClickOutside)
+      // Add a small delay to prevent immediate closing
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside)
+      }, 100)
+      
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden'
+      
+      return () => {
+        clearTimeout(timeoutId)
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.body.style.overflow = 'unset'
+      }
     } else {
       document.body.style.overflow = 'unset'
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
       document.body.style.overflow = 'unset'
     }
   }, [showMobileFilters])
@@ -165,7 +186,7 @@ export default function ProductsContent() {
     }
   }
 
-  const handleFilterChange = (filterType: string, value: string | number) => {
+  const handleFilterChange = (filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters = {
       category: selectedCategory,
       hall: selectedHall,
@@ -219,7 +240,15 @@ export default function ProductsContent() {
         break
     }
 
-    updateURL(filters)
+    // Update URL immediately for desktop, but delay for mobile to prevent modal closing
+    if (isMobile) {
+      // Small delay to allow the select to close properly first
+      setTimeout(() => {
+        updateURL(filters)
+      }, 50)
+    } else {
+      updateURL(filters)
+    }
   }
 
   const clearFilters = () => {
@@ -295,17 +324,24 @@ export default function ProductsContent() {
     )
   }
 
-  const FilterDropdown = ({ label, value, onValueChange, options, placeholder }: FilterDropdownProps) => (
+  const FilterDropdown = ({ label, value, onValueChange, options, placeholder}: FilterDropdownProps) => (
     <div className="mb-4">
       <Label className="text-sm font-medium mb-2 block">{label}</Label>
-      <Select value={value || "all"} onValueChange={onValueChange}>
+      <Select 
+        value={value || "all"} 
+        onValueChange={(val) => onValueChange(val)}
+      >
         <SelectTrigger className="glass border-white/20">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
-        <SelectContent className="glass">
-          <SelectItem value="all">All {label}</SelectItem>
+        <SelectContent className="glass" data-radix-select-content>
+          <SelectItem value="all" data-radix-select-item>All {label}</SelectItem>
           {options.map((option) => (
-            <SelectItem key={typeof option === 'string' ? option : option.value} value={typeof option === 'string' ? option : option.value.toString()}>
+            <SelectItem 
+              key={typeof option === 'string' ? option : option.value} 
+              value={typeof option === 'string' ? option : option.value.toString()}
+              data-radix-select-item
+            >
               {typeof option === 'string' ? formatEnumName(option) : option.label}
             </SelectItem>
           ))}
@@ -845,49 +881,55 @@ export default function ProductsContent() {
               <FilterDropdown
                 label="Category"
                 value={selectedCategory}
-                onValueChange={(value: string) => handleFilterChange('category', value)}
+                onValueChange={(value: string) => handleFilterChange('category', value, true)}
                 options={PRODUCT_CATEGORIES}
                 placeholder="Select category"
+                isMobile={true}
               />
 
               <FilterDropdown
                 label="Hall"
                 value={selectedHall}
-                onValueChange={(value: string) => handleFilterChange('hall', value)}
+                onValueChange={(value: string) => handleFilterChange('hall', value, true)}
                 options={HALLS}
                 placeholder="Select hall"
+                isMobile={true}
               />
 
               <FilterDropdown
                 label="Product Type"
                 value={selectedType}
-                onValueChange={(value: string) => handleFilterChange('type', value)}
+                onValueChange={(value: string) => handleFilterChange('type', value, true)}
                 options={PRODUCT_TYPES}
                 placeholder="Select type"
+                isMobile={true}
               />
 
               <FilterDropdown
                 label="Status"
                 value={selectedStatus}
-                onValueChange={(value: string) => handleFilterChange('status', value)}
+                onValueChange={(value: string) => handleFilterChange('status', value, true)}
                 options={PRODUCT_STATUSES}
-                placeholder="Select status"
+                placeholder="Select status"  
+                isMobile={true}
               />
 
               <FilterDropdown
                 label="Condition"
                 value={selectedCondition}
-                onValueChange={(value: string) => handleFilterChange('condition', value)}
+                onValueChange={(value: string) => handleFilterChange('condition', value, true)}
                 options={CONDITION_OPTIONS}
                 placeholder="Select condition"
+                isMobile={true}
               />
 
               <FilterDropdown
                 label="Seasonality"
                 value={selectedSeasonality}
-                onValueChange={(value: string) => handleFilterChange('seasonality', value)}
+                onValueChange={(value: string) => handleFilterChange('seasonality', value, true)}
                 options={SEASONALITIES}
                 placeholder="Select seasonality"
+                isMobile={true}
               />
 
               <Separator className="my-6" />
@@ -900,7 +942,7 @@ export default function ProductsContent() {
                 <div className="px-2">
                   <Slider
                     value={maxPrice}
-                    onValueChange={(value) => handleFilterChange('maxPrice', value[0])}
+                    onValueChange={(value) => handleFilterChange('maxPrice', value[0], true)}
                     max={50000}
                     min={100}
                     step={100}

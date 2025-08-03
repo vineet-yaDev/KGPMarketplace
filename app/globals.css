@@ -241,3 +241,15 @@
     @apply transition-all duration-300 hover:backdrop-blur-md hover:bg-white/10 dark:hover:bg-black/10 text-foreground;
   }
 }
+
+
+
+
+.cld-upload-widget-modal {
+  z-index: 9999 !important;
+}
+
+body.cld-upload-widget-open {
+  overflow: auto !important;
+  position: static !important;
+}
