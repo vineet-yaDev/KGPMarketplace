@@ -29,7 +29,7 @@ export default function AboutUsPage() {
       role: "Co-Founder & Product Manager",
       image: "/images/Sudeep.jpg",
       bio: "Co-Founder and Product Manager passionate about making things easier and more enjoyable for people. Focused on turning ideas into practical solutions, Sudeep collaborates closely with teams to ensure every product feels simple and approachable for users.",
-      skills: ["Figma", "Design Systems", "User Research", "Prototyping"],
+      skills: ["Figma", "Design Systems", "User Researchs", "Prototyping"],
       social: {
         github: "https://github.com/vineet-yadev",
         instagram: "https://instagram.com/sudeepbhurat",
