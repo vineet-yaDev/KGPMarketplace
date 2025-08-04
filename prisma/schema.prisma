@@ -33,40 +33,54 @@ enum ProductSeasonality {
 
 enum KGPHalls {
   RK
-  RP 
-  MS 
-  LLR
-  MMM
+  RP
   LBS
   AZAD
-  PATEL
-  NEHRU
-  SNIG
-  SNVH
+  HJB
   MT
+  PATEL
+  VS
+  BCR
+  SNVH
+  SNIG
+  ABV
+  MMM
+  BRH
+  JCB
+  GKH
+  RLB
+  NEHRU
+  LLR
+  SBP
+  MS
+  ZH
+  GOKHALE
+  VSRC
+  SAM
+  OTHER
 }
 
 enum ProductCategory {
   ELECTRONICS
   BOOKS
-  CLOTHING
-  FURNITURE
-  SPORTS
-  VEHICLES
-  FOOD
   STATIONERY
+  FURNITURE
+  HOUSEHOLD
+  SPORTS
+  CYCLE
+  APPAREL
+  TICKETS
   OTHER
 }
 
 enum ServiceCategory {
-  TUTORING
-  REPAIR
-  DELIVERY
-  CLEANING
-  PHOTOGRAPHY
-  CODING
+  ACADEMICS
+  CAREERS
+  COMPETITION
+  FREELANCING
   DESIGN
-  CONSULTING
+  CODING
+  VENDORS
   OTHER
 }
 
@@ -87,6 +101,11 @@ model User {
   demands         Demand[]
   reportsMade     Report[]  @relation("ReportsMade")
   reportsAgainst  Report[]  @relation("ReportsAgainst")
+
+  // Indexes
+  @@index([email], name: "idx_user_email")
+  @@index([createdAt(sort: Desc)], name: "idx_user_created_at")
+  @@index([isBlocked], name: "idx_user_blocked")
 }
 
 // --- Product Model ---
@@ -111,8 +130,22 @@ model Product {
   updatedAt       DateTime           @updatedAt
   
   // Proper relation with User
-  owner           User               @relation(fields: [ownerId], references: [id])
+  owner           User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId         String
+
+  // Indexes for fuzzy search and filtering
+  @@index([ownerId], name: "idx_product_owner_id")
+  @@index([category], name: "idx_product_category")
+  @@index([status], name: "idx_product_status")
+  @@index([productType], name: "idx_product_type")
+  @@index([addressHall], name: "idx_product_hall")
+  @@index([createdAt(sort: Desc)], name: "idx_product_created_at")
+  @@index([price], name: "idx_product_price")
+  @@index([condition], name: "idx_product_condition")
+  @@index([seasonality], name: "idx_product_seasonality")
+  @@index([status, category], name: "idx_product_status_category")
+  @@index([category, createdAt(sort: Desc)], name: "idx_product_category_date")
+  @@index([price, condition], name: "idx_product_price_condition")
 }
 
 // --- Service Model ---
@@ -132,8 +165,19 @@ model Service {
   updatedAt         DateTime        @updatedAt
   
   // Proper relation with User
-  owner             User            @relation(fields: [ownerId], references: [id])
+  owner             User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId           String
+
+  // Indexes for fuzzy search and filtering
+  @@index([ownerId], name: "idx_service_owner_id")
+  @@index([category], name: "idx_service_category")
+  @@index([addressHall], name: "idx_service_hall")
+  @@index([createdAt(sort: Desc)], name: "idx_service_created_at")
+  @@index([minPrice], name: "idx_service_min_price")
+  @@index([maxPrice], name: "idx_service_max_price")
+  @@index([experienceYears], name: "idx_service_experience")
+  @@index([category, createdAt(sort: Desc)], name: "idx_service_category_date")
+  @@index([minPrice, maxPrice], name: "idx_service_price_range")
 }
 
 // --- Demand Model ---
@@ -148,8 +192,14 @@ model Demand {
   updatedAt         DateTime         @updatedAt
   
   // Proper relation with User
-  owner             User             @relation(fields: [ownerId], references: [id])
+  owner             User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId           String
+
+  // Indexes for fuzzy search and filtering
+  @@index([ownerId], name: "idx_demand_owner_id")
+  @@index([createdAt(sort: Desc)], name: "idx_demand_created_at")
+  @@index([productCategory], name: "idx_demand_product_category")
+  @@index([serviceCategory], name: "idx_demand_service_category")
 }
 
 // --- Report Model ---
@@ -158,10 +208,15 @@ model Report {
   reason            String   
   createdAt         DateTime @default(now())
   
-  reportedBy        User     @relation("ReportsMade", fields: [reportedById], references: [id])
+  reportedBy        User     @relation("ReportsMade", fields: [reportedById], references: [id], onDelete: Cascade)
   reportedById      String
-  reportedAgainst   User     @relation("ReportsAgainst", fields: [reportedAgainstId], references: [id])
+  reportedAgainst   User     @relation("ReportsAgainst", fields: [reportedAgainstId], references: [id], onDelete: Cascade)
   reportedAgainstId String
+
+  // Indexes for reports
+  @@index([reportedById], name: "idx_report_reported_by")
+  @@index([reportedAgainstId], name: "idx_report_reported_against")
+  @@index([createdAt(sort: Desc)], name: "idx_report_created_at")
 }
 
 // --- Admin Model ---
@@ -173,4 +228,9 @@ model Admin {
   role      String   @default("MODERATOR")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Indexes for admin
+  @@index([username], name: "idx_admin_username")
+  @@index([email], name: "idx_admin_email")
+  @@index([role], name: "idx_admin_role")
 }

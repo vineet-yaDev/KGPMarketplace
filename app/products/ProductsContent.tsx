@@ -23,13 +23,10 @@ import {
   SEASONALITIES,
   CONDITION_OPTIONS,
   PRODUCT_TYPE_TEXT_MAP,
-  SEASONALITY_TEXT_MAP
+  SEASONALITY_TEXT_MAP,
+  formatEnumName
 } from '@/lib/constants'
 
-// Helper function to format enum names
-const formatEnumName = (value: string) => {
-  return value.charAt(0) + value.slice(1).toLowerCase().replace('_', ' ')
-}
 
 // Type for FilterDropdown props
 interface FilterDropdownProps {
@@ -51,7 +48,7 @@ export default function ProductsContent() {
   const [selectedStatus, setSelectedStatus] = useState('')
   const [selectedSeasonality, setSelectedSeasonality] = useState('')
   const [selectedCondition, setSelectedCondition] = useState('')
-  const [maxPrice, setMaxPrice] = useState([10000])
+  const [maxPrice, setMaxPrice] = useState([1000000])
   const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -153,7 +150,7 @@ export default function ProductsContent() {
     if (filters.status) params.set('status', filters.status.toLowerCase())
     if (filters.seasonality) params.set('seasonality', filters.seasonality.toLowerCase())
     if (filters.condition) params.set('condition', filters.condition)
-    if (filters.maxPrice && filters.maxPrice !== 10000) params.set('maxPrice', filters.maxPrice.toString())
+    if (filters.maxPrice && filters.maxPrice !== 1000000) params.set('maxPrice', filters.maxPrice.toString())
     if (filters.search) params.set('search', filters.search)
     if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort)
 
@@ -258,7 +255,7 @@ export default function ProductsContent() {
     setSelectedStatus('')
     setSelectedSeasonality('')
     setSelectedCondition('')
-    setMaxPrice([10000])
+    setMaxPrice([1000000])
     setSearchQuery('')
     setSortBy('newest')
     router.push('/products')
@@ -309,7 +306,7 @@ export default function ProductsContent() {
 
   const hasActiveFilters = selectedCategory || selectedHall || selectedType || 
                           selectedStatus || selectedSeasonality || selectedCondition || 
-                          maxPrice[0] < 10000 || searchQuery
+                          maxPrice[0] < 1000000 || searchQuery
 
   if (loading) {
     return (
@@ -389,7 +386,7 @@ export default function ProductsContent() {
 
                 {/* Hall Filter */}
                 <FilterDropdown
-                  label="Hall"
+                  label="Halls"
                   value={selectedHall}
                   onValueChange={(value: string) => handleFilterChange('hall', value)}
                   options={HALLS}
@@ -416,7 +413,7 @@ export default function ProductsContent() {
 
                 {/* Condition Filter */}
                 <FilterDropdown
-                  label="Condition"
+                  label="Conditions"
                   value={selectedCondition}
                   onValueChange={(value: string) => handleFilterChange('condition', value)}
                   options={CONDITION_OPTIONS}
@@ -597,12 +594,12 @@ export default function ProductsContent() {
                           />
                         </Badge>
                       )}
-                      {maxPrice[0] < 10000 && (
+                      {maxPrice[0] < 1000000 && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           Max: {formatCurrency(maxPrice[0])}
                           <X 
                             className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('maxPrice', 10000)}
+                            onClick={() => handleFilterChange('maxPrice', 1000000)}
                           />
                         </Badge>
                       )}

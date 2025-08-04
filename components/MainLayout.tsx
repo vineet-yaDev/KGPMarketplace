@@ -1,6 +1,7 @@
+// MainLayout.tsx (Full Code)
 'use client'
 
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { signIn, signOut } from 'next-auth/react'
@@ -18,6 +19,7 @@ import {
   Moon,
   Package,
   LogOut,
+  Loader2, // Import a loader icon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
+import { useSearch } from '@/hooks/useSearch' // Import your search hook
 
 interface MainLayoutProps {
   children: ReactNode
@@ -42,18 +45,45 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchFocused, setIsSearchFocused] = useState(false) // State to control dropdown visibility
+  const searchContainerRef = useRef<HTMLDivElement>(null) // Ref to detect clicks outside search
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+  // Use the search hook
+  const { search, results, loading, error } = useSearch()
+
+  // Handle changes to the search input
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value
+    setSearchQuery(query)
+    search(query) // This triggers the debounced search in the hook
+  }
+  
+  // Handle form submission (when user presses Enter)
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim().length > 0) {
+      // Default to searching products page if user presses Enter
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchFocused(false); // Hide dropdown on submit
     }
   }
+  
+  // Close dropdown when clicking outside the search container
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [searchContainerRef]);
 
-  // Updated sign out handler to redirect to home page
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' })
-    router.push('/') // Explicitly redirect to home page
+    router.push('/')
   }
 
   const isActivePath = (path: string) => {
@@ -66,11 +96,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { href: '/demand', label: 'Demand', icon: MessageSquare },
   ]
 
-  // Updated profile menu items logic - only show if authenticated
   const profileMenuItems = isAuthenticated ? [
     { href: `/user/${user?.id}`, label: 'My Listings', icon: Package },
-    // { href: '/profile', label: 'Profile', icon: Settings },
   ] : []
+
+  // Logic to decide when to show the dropdown
+  const showDropdown = isSearchFocused && searchQuery.length > 1;
+  const hasResults = results && results.total > 0;
 
   return (
     <div className="min-h-screen bg-gradient-surface">
@@ -88,23 +120,66 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </span>
             </Link>
 
-            {/* Desktop Search Bar - Responsive */}
-            <div className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
-              <form onSubmit={handleSearch} className="w-full">
+            {/* --- Desktop Search Bar Area --- */}
+            <div ref={searchContainerRef} className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8 relative">
+              <form onSubmit={handleSearchSubmit} className="w-full">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     type="text"
                     placeholder="Search products, services..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
+                    onFocus={() => setIsSearchFocused(true)} // Show dropdown on focus
                     className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
+                    autoComplete="off"
                   />
                 </div>
               </form>
+              
+              {/* --- Search Results Dropdown --- */}
+              {showDropdown && (
+                <div className="absolute top-full mt-2 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
+                  {loading && (
+                    <div className="flex items-center justify-center p-2 text-muted-foreground">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Searching...
+                    </div>
+                  )}
+                  {!loading && error && (
+                     <div className="p-2 text-center text-destructive">{error}</div>
+                  )}
+                  {!loading && !error && results && (
+                    <>
+                      {hasResults ? (
+                        <div className='space-y-1'>
+                          {results.products.length > 0 && (
+                            <Link href={`/products?search=${encodeURIComponent(searchQuery)}`} onClick={() => setIsSearchFocused(false)} className='flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10'>
+                               <ShoppingBag className="mr-3 h-4 w-4 text-primary" /> <span>{results.products.length} product{results.products.length > 1 ? 's' : ''} found</span>
+                            </Link>
+                          )}
+                          {results.services.length > 0 && (
+                             <Link href={`/services?search=${encodeURIComponent(searchQuery)}`} onClick={() => setIsSearchFocused(false)} className='flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10'>
+                               <Briefcase className="mr-3 h-4 w-4 text-primary" /> <span>{results.services.length} service{results.services.length > 1 ? 's' : ''} found</span>
+                            </Link>
+                          )}
+                           {results.demands.length > 0 && (
+                             <Link href={`/demand?search=${encodeURIComponent(searchQuery)}`} onClick={() => setIsSearchFocused(false)} className='flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10'>
+                               <MessageSquare className="mr-3 h-4 w-4 text-primary" /> <span>{results.demands.length} demand{results.demands.length > 1 ? 's' : ''} found</span>
+                            </Link>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-2 text-center text-muted-foreground">No results found.</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
+            {/* --- END OF SEARCH AREA --- */}
 
-            {/* Desktop Navigation - Responsive */}
+            {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
               {navigationLinks.map(({ href, label }) => (
                 <Link
@@ -119,9 +194,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
               ))}
             </nav>
 
-            {/* Right Section - Responsive */}
+            {/* Right Section */}
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* ADD Button - Improved styling and responsive */}
+              {/* ADD Button */}
               {isAuthenticated ? (
                 <Link href="/add">
                   <Button className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold text-sm sm:text-base px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-white/20">
@@ -138,20 +213,18 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <span className="xs:inline mr-2">Add</span>
                 </Button>
               )}
-{/* Theme Toggle - Simple Button */}
-<Button 
-  variant="ghost" 
-  size="sm" 
-  className="glass-button dark:hover:bg-white/10 p-2"
-  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
->
-  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-  <span className="sr-only">Toggle theme</span>
-</Button>
-
-
-              {/* User Menu - Responsive */}
+              {/* Theme Toggle */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="glass-button dark:hover:bg-white/10 p-2"
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              >
+                <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+              {/* User Menu */}
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -204,8 +277,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <span className="hidden sm:inline">Login</span>
                 </Button>
               )}
-
-              {/* Mobile Menu Button - Responsive */}
+              {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -216,31 +288,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </Button>
             </div>
           </div>
-
-          {/* Mobile Search Bar - Responsive */}
-          <div className="md:hidden pb-3 sm:pb-4">
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Search products, services..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
-                />
-              </div>
-            </form>
-          </div>
         </div>
       </header>
 
-      {/* Mobile Navigation Sidebar - Fixed positioning and improved styling */}
+      {/* Mobile Navigation Sidebar */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="fixed right-0 top-0 h-full w-64 sm:w-72 glass-sidebar border-l border-white/20 p-4 sm:p-6 bg-white/95 dark:bg-black/80 backdrop-blur-xl">
-            {/* Add spacing from top to avoid navbar overlap */}
             <nav className="space-y-3 sm:space-y-4 mt-24 sm:mt-28">
               {navigationLinks.map(({ href, label, icon: Icon }) => (
                 <Link
@@ -307,38 +362,35 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {children}
       </main>
 
-      {/* Footer - Responsive */}
-<footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
-  <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
-    <div className="text-center space-y-3 sm:space-y-4">
-      <div className="flex items-center justify-center space-x-2">
-        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
-          <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+      {/* Footer */}
+      <footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
+        <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
+          <div className="text-center space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-primary rounded-lg flex items-center justify-center">
+                <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+              </div>
+              <span className="text-base sm:text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
+                KGP Marketplace
+              </span>
+            </div>
+            {/* About Us Button */}
+            <div className="flex justify-center py-2">
+              <Link href="/about">
+                <Button className="bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 hover:from-emerald-500 hover:via-purple-500 hover:to-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-500 ease-in-out border border-white/20 backdrop-blur-sm">
+                  About Us
+                </Button>
+              </Link>
+            </div>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Exclusive marketplace for IIT Kharagpur students
+            </p>
+            <p className="text-xs text-muted-foreground">
+              © 2024 KGP Marketplace. All rights reserved.
+            </p>
+          </div>
         </div>
-        <span className="text-base sm:text-lg font-bold bg-gradient-primary bg-clip-text text-transparent">
-          KGP Marketplace
-        </span>
-      </div>
-
-      {/* About Us Button */}
-      <div className="flex justify-center py-2">
-        <Link href="/about">
-          <Button className="bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 hover:from-emerald-500 hover:via-purple-500 hover:to-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-500 ease-in-out border border-white/20 backdrop-blur-sm">
-            About Us
-          </Button>
-        </Link>
-      </div>
-
-      <p className="text-xs sm:text-sm text-muted-foreground">
-        Exclusive marketplace for IIT Kharagpur students
-      </p>
-      <p className="text-xs text-muted-foreground">
-        © 2024 KGP Marketplace. All rights reserved.
-      </p>
-    </div>
-  </div>
-</footer>
-
+      </footer>
     </div>
   )
 }

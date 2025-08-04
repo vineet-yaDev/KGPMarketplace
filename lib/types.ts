@@ -13,11 +13,10 @@ import type {
 export type ProductStatus = "LISTED" | "SOLD" | "RENTED";
 export type ProductType = "NEW" | "USED" | "RENT" | "SERVICE";
 export type ProductSeasonality = "NONE" | "HALL_DAYS" | "PLACEMENTS" | "SEMESTER_END" | "FRESHERS" | "FESTIVE";
-export type KGPHalls = "RK" | "RP" | "MS" | "LLR" | "MMM" | "LBS" | "AZAD" | "PATEL" | "NEHRU" | "SNIG" | "SNVH" | "MT";
-export type ProductCategory = "ELECTRONICS" | "BOOKS" | "CLOTHING" | "FURNITURE" | "SPORTS" | "VEHICLES" | "FOOD" | "STATIONERY" | "OTHER";
-export type ServiceCategory = "TUTORING" | "REPAIR" | "DELIVERY" | "CLEANING" | "PHOTOGRAPHY" | "CODING" | "DESIGN" | "CONSULTING" | "OTHER";
+export type KGPHalls = "RK" | "RP" | "LBS" | "AZAD" | "HJB" | "MT" | "PATEL" | "VS" | "BCR" | "SNVH" | "SNIG" | "ABV" | "MMM" | "BRH" | "JCB" | "GKH" | "RLB" | "NEHRU" | "LLR" | "SBP" | "MS" | "ZH" | "GOKHALE" | "VSRC" | "SAM" | "OTHER";
+export type ProductCategory = "ELECTRONICS" | "BOOKS" | "STATIONERY" | "FURNITURE" | "HOUSEHOLD" | "SPORTS" | "CYCLE" | "APPAREL" | "TICKETS" | "OTHER";
+export type ServiceCategory = "ACADEMICS" | "CAREERS" | "COMPETITION" | "FREELANCING" | "DESIGN" | "CODING" | "VENDORS" | "OTHER";
 export type AdminRole = "MODERATOR" | "ADMIN" | "SUPER_ADMIN";
-
 
 // =================================================================
 // D A T A   M O D E L S (Client-Facing)
@@ -32,8 +31,8 @@ export interface User {
   email: string;
   image?: string | null;
   mobileNumber?: string | null;
-  createdAt: string; // Corrected to string
-  updatedAt: string; // Corrected to string
+  createdAt: string;
+  updatedAt: string;
   isBlocked: boolean;
 }
 
@@ -55,8 +54,8 @@ export interface Product {
   seasonality: ProductSeasonality;
   category: ProductCategory;
   images: string[];
-  createdAt: string; // Corrected to string
-  updatedAt: string; // Corrected to string
+  createdAt: string;
+  updatedAt: string;
   ownerId: string;
   owner: User;
 }
@@ -74,8 +73,8 @@ export interface Service {
   mobileNumber?: string | null;
   category: ServiceCategory;
   images: string[];
-  createdAt: string; // Corrected to string
-  updatedAt: string; // Corrected to string
+  createdAt: string;
+  updatedAt: string;
   ownerId: string;
   owner: User;
 }
@@ -88,10 +87,32 @@ export interface Demand {
   mobileNumber?: string | null;
   productCategory?: ProductCategory | null;
   serviceCategory?: ServiceCategory | null;
-  createdAt: string; // Corrected to string
-  updatedAt: string; // Corrected to string
+  createdAt: string;
+  updatedAt: string;
   ownerId: string;
   owner: User;
+}
+
+// Report interface
+export interface Report {
+  id: string;
+  reason: string;
+  createdAt: string;
+  reportedById: string;
+  reportedAgainstId: string;
+  reportedBy: User;
+  reportedAgainst: User;
+}
+
+// Admin interface
+export interface Admin {
+  id: string;
+  username: string;
+  password: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FilterState {
@@ -105,6 +126,7 @@ export interface FilterState {
   search: string
   sort: string
 }
+
 // =================================================================
 // A P I   R E S P O N S E S  &  E X T E N D E D   T Y P E S
 // =================================================================
@@ -148,7 +170,6 @@ export interface UserWithListings extends User {
   };
 }
 
-
 // =================================================================
 // F O R M   D A T A
 // Using stricter types for form data to improve validation and consistency.
@@ -187,11 +208,10 @@ export interface ServiceFormData {
 export interface DemandFormData {
   title: string;
   description: string;
-  productCategory: ProductCategory | ""; // Allow empty for initial state
-  serviceCategory: ServiceCategory | ""; // Allow empty for initial state
+  productCategory: ProductCategory | "";
+  serviceCategory: ServiceCategory | "";
   mobileNumber: string;
 }
-
 
 // =================================================================
 // T H I R D - P A R T Y   T Y P E S
@@ -199,4 +219,3 @@ export interface DemandFormData {
 
 export type CloudinaryResult = CloudinaryUploadWidgetResults;
 export type CloudinaryError = CloudinaryUploadWidgetError;
-

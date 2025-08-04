@@ -282,20 +282,25 @@ export default function ProductDetailPage() {
 
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button
-          variant="destructive"
-          disabled={isDeleting}
-          className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-          size="sm"
-        >
-          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">
-            {isDeleting ? 'Deleting...' : 'Delete'}
-          </span>
-          <span className="xs:hidden">
-            {isDeleting ? '...' : 'Del'}
-          </span>
-        </Button>
+<Button
+  variant="destructive"
+  disabled={isDeleting}
+  className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+  size="sm"
+>
+  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+  
+  {/* Show on sm and larger */}
+  <span className="hidden sm:inline">
+    {isDeleting ? 'Deleting...' : 'Delete'}
+  </span>
+
+  {/* Show below sm (mobile) */}
+  <span className="sm:hidden">
+    {isDeleting ? '...' : 'Del'}
+  </span>
+</Button>
+
       </AlertDialogTrigger>
       <AlertDialogContent className="glass-card mx-2 sm:mx-4">
         <AlertDialogHeader>

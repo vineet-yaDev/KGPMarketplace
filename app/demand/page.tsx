@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Search, MessageSquare, Plus, Filter, X } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Demand } from '@/lib/types';
 import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from '@/lib/constants';
+import { useDemandSearch } from '@/hooks/useDemandSearch';
 
 export default function DemandsPage() {
   const [demands, setDemands] = useState<Demand[]>([]);
@@ -20,6 +21,15 @@ export default function DemandsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
+  const [useFuzzySearch, setUseFuzzySearch] = useState(false);
+
+  // Fuzzy search hook for demands
+  const {
+    results: fuzzyResults,
+    // loading: fuzzyLoading,
+    // error: fuzzyError,
+    search: fuzzySearch,
+  } = useDemandSearch();
 
   useEffect(() => {
     fetchDemands();
@@ -30,7 +40,7 @@ export default function DemandsPage() {
       setLoading(true);
       const response = await fetch('/api/demands');
       const data = await response.json();
-      
+
       if (response.ok) {
         setDemands(data.demands || []);
       } else {
@@ -43,32 +53,69 @@ export default function DemandsPage() {
     }
   };
 
-  const filteredDemands = demands.filter((demand: Demand) => {
-    const matchesSearch = demand.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (demand.description && demand.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const demandCategory = demand.productCategory || demand.serviceCategory;
-    const matchesCategory = selectedCategory === 'All Categories' || demandCategory === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Debounced fuzzy search (300ms)
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (useFuzzySearch && searchQuery.trim()) {
+        const filters = {
+          category: selectedCategory !== 'All Categories' ? selectedCategory : undefined,
+        };
+        fuzzySearch(searchQuery, filters);
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery, selectedCategory, useFuzzySearch, fuzzySearch]);
 
-  const sortedDemands = [...filteredDemands].sort((a: Demand, b: Demand) => {
-    switch (sortBy) {
-      case 'newest':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      case 'oldest':
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      default:
-        return 0;
+  // Reset fuzzy mode when search input is empty
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUseFuzzySearch(false);
     }
-  });
+  }, [searchQuery]);
+
+  // Local (client-side) filtering when fuzzy mode is not used
+  const localFilteredDemands = useMemo(() => {
+    return demands.filter((demand: Demand) => {
+      const matchesSearch =
+        !searchQuery ||
+        demand.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (demand.description &&
+          demand.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const demandCategory = demand.productCategory || demand.serviceCategory;
+      const matchesCategory =
+        selectedCategory === 'All Categories' || demandCategory === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [demands, searchQuery, selectedCategory]);
+
+  // When fuzzy mode is active, use fuzzy results; otherwise, use local filtering.
+  const displayedDemands = useMemo(() => {
+    if (useFuzzySearch) {
+      return fuzzyResults;
+    }
+    return localFilteredDemands;
+  }, [useFuzzySearch, fuzzyResults, localFilteredDemands]);
+
+  // Sort the demands
+  const sortedDemands = useMemo(() => {
+    return [...displayedDemands].sort((a: Demand, b: Demand) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default:
+          return 0;
+      }
+    });
+  }, [displayedDemands, sortBy]);
 
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
@@ -80,16 +127,33 @@ export default function DemandsPage() {
     setSearchQuery('');
     setSortBy('newest');
     setShowFilters(false);
+    setUseFuzzySearch(false);
   };
 
   const hasActiveFilters = selectedCategory !== 'All Categories' || searchQuery || sortBy !== 'newest';
+
+  // Function to trigger fuzzy search on Enter key or button click
+  const executeSearch = () => {
+    if (searchQuery.trim()) {
+      setUseFuzzySearch(true);
+    } else {
+      setUseFuzzySearch(false);
+    }
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      executeSearch();
+    }
+  };
 
   if (loading) {
     return (
       <MainLayout>
         <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Loading demands...</p>
           </div>
         </div>
@@ -111,10 +175,8 @@ export default function DemandsPage() {
                 Discover what your fellow students are looking for
               </p>
             </div>
-            
-            {/* Big Add Demand Button */}
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="btn-gradient-primary text-lg px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               asChild
             >
@@ -128,7 +190,6 @@ export default function DemandsPage() {
           {/* Search and Filters */}
           <div className="glass-card rounded-xl shadow-lg mb-8">
             <div className="p-6">
-              {/* Search Bar */}
               <div className="flex flex-col md:flex-row gap-4 mb-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
@@ -136,6 +197,7 @@ export default function DemandsPage() {
                     placeholder="Search for products, services, or anything..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleSearchKeyPress}
                     className="pl-12 pr-4 py-3 text-lg glass border-white/20 rounded-lg focus:ring-2 focus:ring-primary/20"
                   />
                   {searchQuery && (
@@ -149,28 +211,28 @@ export default function DemandsPage() {
                     </Button>
                   )}
                 </div>
-
                 <Button
-                  variant={showFilters ? "default" : "outline"}
+                  variant={showFilters ? 'default' : 'outline'}
                   onClick={() => setShowFilters(!showFilters)}
                   className={`px-6 py-3 rounded-lg transition-all ${
-                    showFilters 
-                      ? 'btn-gradient-primary' 
-                      : 'glass border-white/20 hover:bg-white/10'
+                    showFilters ? 'btn-gradient-primary' : 'glass border-white/20 hover:bg-white/10'
                   }`}
                 >
                   <Filter className="w-5 h-5 mr-2" />
                   Filters
                   {hasActiveFilters && (
-                    <Badge 
+                    <Badge
                       className="ml-2 text-xs font-semibold px-2 py-1 rounded-full"
-                      style={{ 
-                        backgroundColor: 'rgb(249 115 22)', 
-                        color: 'white', 
-                        border: '1px solid rgb(234 88 12)' 
+                      style={{
+                        backgroundColor: 'rgb(249 115 22)',
+                        color: 'white',
+                        border: '1px solid rgb(234 88 12)',
                       }}
                     >
-                      {[selectedCategory !== 'All Categories', searchQuery, sortBy !== 'newest'].filter(Boolean).length}
+                      {
+                        [selectedCategory !== 'All Categories', searchQuery, sortBy !== 'newest'].filter(Boolean)
+                          .length
+                      }
                     </Badge>
                   )}
                 </Button>
@@ -184,30 +246,36 @@ export default function DemandsPage() {
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent className="glass-card rounded-lg border-white/20">
-                      <SelectItem key="All Categories" value="All Categories" className="hover:bg-white/10">
+                      <SelectItem value="All Categories" className="hover:bg-white/10">
                         All Categories
                       </SelectItem>
-                      {[...PRODUCT_CATEGORIES, ...SERVICE_CATEGORIES].map(category => (
-                        <SelectItem key={category} value={category} className="hover:bg-white/10">
+                      {[...PRODUCT_CATEGORIES, ...SERVICE_CATEGORIES].map((category) => (
+                        <SelectItem
+                          key={category}
+                          value={category}
+                          className="hover:bg-white/10"
+                        >
                           {category}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-
                   <Select value={sortBy} onValueChange={setSortBy}>
                     <SelectTrigger className="glass border-white/20 rounded-lg">
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent className="glass-card rounded-lg border-white/20">
-                      <SelectItem value="newest" className="hover:bg-white/10">Newest First</SelectItem>
-                      <SelectItem value="oldest" className="hover:bg-white/10">Oldest First</SelectItem>
+                      <SelectItem value="newest" className="hover:bg-white/10">
+                        Newest First
+                      </SelectItem>
+                      <SelectItem value="oldest" className="hover:bg-white/10">
+                        Oldest First
+                      </SelectItem>
                     </SelectContent>
                   </Select>
-
                   <div className="md:col-span-2 flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={clearFilters}
                       className="glass border-white/20 hover:bg-white/10 flex-1 rounded-lg"
                     >
@@ -224,15 +292,16 @@ export default function DemandsPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <p className="text-muted-foreground">
-                <span className="font-semibold text-white">{sortedDemands.length}</span> demand{sortedDemands.length !== 1 ? 's' : ''} found
+                <span className="font-semibold text-white">{sortedDemands.length}</span>{' '}
+                demand{sortedDemands.length !== 1 ? 's' : ''} found
               </p>
               {hasActiveFilters && (
-                <Badge 
+                <Badge
                   className="font-semibold px-3 py-1 rounded-full"
-                  style={{ 
-                    backgroundColor: 'rgb(37 99 235)', 
-                    color: 'white', 
-                    border: '1px solid rgb(29 78 216)' 
+                  style={{
+                    backgroundColor: 'rgb(37 99 235)',
+                    color: 'white',
+                    border: '1px solid rgb(29 78 216)',
                   }}
                 >
                   Filtered
@@ -241,7 +310,7 @@ export default function DemandsPage() {
             </div>
           </div>
 
-          {/* Demands Grid */}
+          {/* Demands List */}
           <div className="grid grid-cols-1 gap-6">
             {sortedDemands.map((demand: Demand) => (
               <Link key={demand.id} href={`/demand/${demand.id}`} className="group">
@@ -253,51 +322,51 @@ export default function DemandsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-3 flex-wrap">
                             {demand.productCategory && (
-                              <Badge 
+                              <Badge
                                 className="font-semibold px-3 py-1 rounded-full text-xs"
-                                style={{ 
-                                  backgroundColor: 'rgb(71 85 105)', 
-                                  color: 'white', 
-                                  border: '1px solid rgb(51 65 85)' 
+                                style={{
+                                  backgroundColor: 'rgb(71 85 105)',
+                                  color: 'white',
+                                  border: '1px solid rgb(51 65 85)',
                                 }}
                               >
                                 Product: {demand.productCategory}
                               </Badge>
                             )}
                             {demand.serviceCategory && (
-                              <Badge 
+                              <Badge
                                 className="font-semibold px-3 py-1 rounded-full text-xs"
-                                style={{ 
-                                  backgroundColor: 'rgb(234 88 12)', 
-                                  color: 'white', 
-                                  border: '1px solid rgb(194 65 12)' 
+                                style={{
+                                  backgroundColor: 'rgb(234 88 12)',
+                                  color: 'white',
+                                  border: '1px solid rgb(194 65 12)',
                                 }}
                               >
                                 Service: {demand.serviceCategory}
                               </Badge>
                             )}
-                            <Badge 
+                            <Badge
                               className="font-semibold px-3 py-1 rounded-full text-xs"
-                              style={{ 
-                                backgroundColor: 'rgb(217 119 6)', 
-                                color: 'white', 
-                                border: '1px solid rgb(180 83 9)' 
+                              style={{
+                                backgroundColor: 'rgb(217 119 6)',
+                                color: 'white',
+                                border: '1px solid rgb(180 83 9)',
                               }}
                             >
                               DEMAND
                             </Badge>
                           </div>
-                          
+
                           <h3 className="font-bold text-xl mb-3 group-hover:text-primary transition-colors line-clamp-2">
                             {demand.title}
                           </h3>
-                          
+
                           <p className="text-muted-foreground text-base leading-relaxed line-clamp-3">
                             {demand.description || 'No description provided'}
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Footer */}
                       <div className="flex items-center justify-between pt-4 border-t border-white/10">
                         <div className="flex items-center space-x-4">
@@ -335,18 +404,13 @@ export default function DemandsPage() {
                 </div>
                 <h3 className="text-2xl font-bold mb-3">No demands found</h3>
                 <p className="text-muted-foreground mb-6 text-lg">
-                  {hasActiveFilters 
-                    ? "Try adjusting your search criteria or clear the filters" 
-                    : "Be the first to post a demand and let others know what you're looking for!"
-                  }
+                  {hasActiveFilters
+                    ? 'Try adjusting your search criteria or clear the filters'
+                    : "Be the first to post a demand and let others know what you're looking for!"}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   {hasActiveFilters && (
-                    <Button 
-                      variant="outline" 
-                      onClick={clearFilters}
-                      className="glass border-white/20"
-                    >
+                    <Button variant="outline" onClick={clearFilters} className="glass border-white/20">
                       Clear Filters
                     </Button>
                   )}

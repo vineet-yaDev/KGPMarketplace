@@ -14,19 +14,21 @@ import type {
 import {
   Smartphone,
   BookOpen,
-  Shirt,
+  PenTool,
   Dumbbell,
   Armchair,
-  ChefHat,
-  PenTool,
+  Home,
   Bike,
+  Shirt,
+  Ticket,
   AlertCircle,
+  GraduationCap,
   Briefcase,
-  Camera,
-  Code,
+  Trophy,
+  Handshake,
   Brush,
-  Truck,
-  User,
+  Code,
+  Store,
 } from 'lucide-react'
 
 // =================================================================
@@ -36,24 +38,24 @@ import {
 export const PRODUCT_CATEGORY_ICONS: Record<ProductCategory, React.ReactNode> = {
   ELECTRONICS: <Smartphone size={48} />,
   BOOKS: <BookOpen size={48} />,
-  CLOTHING: <Shirt size={48} />,
-  SPORTS: <Dumbbell size={48} />,
-  FURNITURE: <Armchair size={48} />,
-  FOOD: <ChefHat size={48} />,
   STATIONERY: <PenTool size={48} />,
-  VEHICLES: <Bike size={48} />,
+  FURNITURE: <Armchair size={48} />,
+  HOUSEHOLD: <Home size={48} />,
+  SPORTS: <Dumbbell size={48} />,
+  CYCLE: <Bike size={48} />,
+  APPAREL: <Shirt size={48} />,
+  TICKETS: <Ticket size={48} />,
   OTHER: <AlertCircle size={48} />,
 }
 
 export const SERVICE_CATEGORY_ICONS: Record<ServiceCategory, React.ReactNode> = {
-  TUTORING: <BookOpen size={48} />,
-  REPAIR: <Briefcase size={48} />,
-  DELIVERY: <Truck size={48} />,
-  CLEANING: <Brush size={48} />,
-  PHOTOGRAPHY: <Camera size={48} />,
+  ACADEMICS: <GraduationCap size={48} />,
+  CAREERS: <Briefcase size={48} />,
+  COMPETITION: <Trophy size={48} />,
+  FREELANCING: <Handshake size={48} />,
+  DESIGN: <Brush size={48} />,
   CODING: <Code size={48} />,
-  DESIGN: <PenTool size={48} />,
-  CONSULTING: <User size={48} />,
+  VENDORS: <Store size={48} />,
   OTHER: <AlertCircle size={48} />,
 }
 
@@ -86,31 +88,33 @@ export const SEASONALITY_TEXT_MAP: Record<ProductSeasonality, string> = {
 }
 
 export const SERVICE_CATEGORY_TEXT_MAP: Record<ServiceCategory, string> = {
-  'TUTORING': 'Tutoring',
-  'REPAIR': 'Repair',
-  'DELIVERY': 'Delivery',
-  'CLEANING': 'Cleaning',
-  'PHOTOGRAPHY': 'Photography',
-  'CODING': 'Coding',
+  'ACADEMICS': 'Academics',
+  'CAREERS': 'Careers',
+  'COMPETITION': 'Competition',
+  'FREELANCING': 'Freelancing',
   'DESIGN': 'Design',
-  'CONSULTING': 'Consulting',
+  'CODING': 'Coding',
+  'VENDORS': 'Vendors',
   'OTHER': 'Other'
 }
+
 // =================================================================
 // E N U M   C O N S T A N T S
 // =================================================================
 
 export const HALLS: readonly KGPHalls[] = [
-  'RK', 'RP', 'MS', 'LLR', 'MMM', 'LBS', 'AZAD', 'PATEL', 'NEHRU', 'SNIG', 'SNVH', 'MT'
+  'RK', 'RP', 'LBS', 'AZAD', 'HJB', 'MT', 'PATEL', 'VS', 'BCR', 'SNVH', 'SNIG', 
+  'ABV', 'MMM', 'BRH', 'JCB', 'GKH', 'RLB', 'NEHRU', 'LLR', 'SBP', 'MS', 'ZH', 
+  'GOKHALE', 'VSRC', 'SAM', 'OTHER'
 ];
 
 export const HALL_OPTIONS: { value: KGPHalls; label: string }[] = HALLS.map(hall => ({
   value: hall,
-  label: hall
+  label: hall === 'OTHER' ? 'Other' : hall
 }));
 
 export const PRODUCT_CATEGORIES: readonly ProductCategory[] = [
-  'ELECTRONICS', 'BOOKS', 'CLOTHING', 'FURNITURE', 'SPORTS', 'VEHICLES', 'FOOD', 'STATIONERY', 'OTHER'
+  'ELECTRONICS', 'BOOKS', 'STATIONERY', 'FURNITURE', 'HOUSEHOLD', 'SPORTS', 'CYCLE', 'APPAREL', 'TICKETS', 'OTHER'
 ];
 
 export const PRODUCT_CATEGORY_OPTIONS: { value: ProductCategory; label: string }[] = PRODUCT_CATEGORIES.map(category => ({
@@ -119,7 +123,7 @@ export const PRODUCT_CATEGORY_OPTIONS: { value: ProductCategory; label: string }
 }));
 
 export const SERVICE_CATEGORIES: readonly ServiceCategory[] = [
-  'TUTORING', 'REPAIR', 'DELIVERY', 'CLEANING', 'PHOTOGRAPHY', 'CODING', 'DESIGN', 'CONSULTING', 'OTHER'
+  'ACADEMICS', 'CAREERS', 'COMPETITION', 'FREELANCING', 'DESIGN', 'CODING', 'VENDORS', 'OTHER'
 ];
 
 export const SERVICE_CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = SERVICE_CATEGORIES.map(category => ({
@@ -129,7 +133,7 @@ export const SERVICE_CATEGORY_OPTIONS: { value: ServiceCategory; label: string }
 
 export const PRODUCT_TYPES: readonly { value: ProductType; label: string }[] = [
   { value: 'NEW', label: 'New' },
-  { value: 'USED', label: 'Used/Second-hand' },
+  { value: 'USED', label: 'Used' },
   { value: 'RENT', label: 'For Rent' },
   { value: 'SERVICE', label: 'Service' }
 ];
@@ -204,7 +208,7 @@ export const DEFAULT_VALUES = {
   ADMIN_ROLE: 'MODERATOR' as AdminRole,
 } as const;
 
-
 export const formatEnumName = (value: string) => {
-  return value.charAt(0) + value.slice(1).toLowerCase().replace(/_/g, ' ');
+  return value.replace(/_/g, ' ');
 };
+

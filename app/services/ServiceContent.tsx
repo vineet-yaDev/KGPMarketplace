@@ -1,7 +1,5 @@
 'use client'
 
-export const dynamic = 'force-dynamic';
-
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -25,8 +23,9 @@ import {
   SERVICE_CATEGORY_TEXT_MAP,
   formatEnumName
 } from '@/lib/constants';
+// Import the fuzzy search hook for services (similar to products)
+import { useServiceSearch } from '@/hooks/useServiceSearch';
 
-// Type for FilterDropdown props
 interface FilterDropdownProps {
   label: string;
   value: string;
@@ -54,58 +53,21 @@ export default function ServicesContent() {
   const [selectedHall, setSelectedHall] = useState('');
   const [selectedExperienceRange, setSelectedExperienceRange] = useState('');
   const [minPrice, setMinPrice] = useState([0]);
-  const [maxPrice, setMaxPrice] = useState([10000]);
+  const [maxPrice, setMaxPrice] = useState([50000]);
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [useFuzzySearch, setUseFuzzySearch] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
   const filterModalRef = useRef<HTMLDivElement>(null);
 
-  // Fixed click outside handler for mobile modal
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node
-      
-      // Don't close if clicking on select content or trigger
-      if (target && (
-        (target as Element).closest('[data-radix-select-content]') ||
-        (target as Element).closest('[data-radix-select-trigger]') ||
-        (target as Element).closest('[data-radix-select-item]') ||
-        (target as Element).closest('[data-radix-popper-content-wrapper]') ||
-        (target as Element).closest('[data-radix-select-viewport]')
-      )) {
-        return
-      }
-      
-      if (filterModalRef.current && !filterModalRef.current.contains(target)) {
-        setShowMobileFilters(false)
-      }
-    }
-
-    if (showMobileFilters) {
-      // Add a small delay to prevent immediate closing
-      const timeoutId = setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside)
-      }, 100)
-      
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
-      
-      return () => {
-        clearTimeout(timeoutId)
-        document.removeEventListener('mousedown', handleClickOutside)
-        document.body.style.overflow = 'unset'
-      }
-    } else {
-      document.body.style.overflow = 'unset'
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
-  }, [showMobileFilters]);
+  // Use fuzzy search hook for services
+  const { results: fuzzyResults, 
+    // loading: fuzzyLoading, 
+    // error: fuzzyError, 
+    search } = useServiceSearch();
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -114,7 +76,7 @@ export default function ServicesContent() {
     const experience = searchParams.get('experience');
     const minPriceParam = searchParams.get('minPrice');
     const maxPriceParam = searchParams.get('maxPrice');
-    const search = searchParams.get('search');
+    const searchParam = searchParams.get('search');
     const sort = searchParams.get('sort');
 
     if (category && SERVICE_CATEGORIES.includes(category.toUpperCase() as ServiceCategory)) {
@@ -132,33 +94,16 @@ export default function ServicesContent() {
     if (maxPriceParam && !isNaN(Number(maxPriceParam))) {
       setMaxPrice([Number(maxPriceParam)]);
     }
-    if (search) {
-      setSearchQuery(search);
+    if (searchParam) {
+      setSearchQuery(searchParam);
+      setUseFuzzySearch(true);
     }
     if (sort) {
       setSortBy(sort);
     }
   }, [searchParams]);
 
-  // Update URL when filters change
-  const updateURL = (filters: FilterState) => {
-    const params = new URLSearchParams();
-    
-    if (filters.category) params.set('category', filters.category.toLowerCase());
-    if (filters.hall) params.set('hall', filters.hall.toLowerCase());
-    if (filters.experience) params.set('experience', filters.experience);
-    if (filters.minPrice && filters.minPrice !== 0) params.set('minPrice', filters.minPrice.toString());
-    if (filters.maxPrice && filters.maxPrice !== 10000) params.set('maxPrice', filters.maxPrice.toString());
-    if (filters.search) params.set('search', filters.search);
-    if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
-
-    const queryString = params.toString();
-    const newURL = queryString ? `/services?${queryString}` : '/services';
-    
-    router.push(newURL, { scroll: false });
-  }
-
-  // Fetch services from API
+  // Fetch services from API on mount
   useEffect(() => {
     fetchServices();
   }, []);
@@ -168,7 +113,6 @@ export default function ServicesContent() {
       setLoading(true);
       const response = await fetch('/api/services');
       const data = await response.json();
-      
       if (response.ok) {
         setServices(data.services || []);
       } else {
@@ -179,7 +123,44 @@ export default function ServicesContent() {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  // Trigger fuzzy search when query changes and fuzzy search is enabled
+  useEffect(() => {
+    if (useFuzzySearch && searchQuery.trim()) {
+      const filters = {
+        category: selectedCategory || undefined,
+        hall: selectedHall || undefined,
+        experience: selectedExperienceRange || undefined,
+        minPrice: minPrice[0] > 0 ? minPrice[0] : undefined,
+        maxPrice: maxPrice[0] < 50000 ? maxPrice[0] : undefined
+      };
+      search(searchQuery, filters);
+    }
+  }, [searchQuery, selectedCategory, selectedHall, selectedExperienceRange, minPrice, maxPrice, useFuzzySearch, search]);
+
+  // If search field becomes empty, reset fuzzy search mode
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setUseFuzzySearch(false);
+    }
+  }, [searchQuery]);
+
+  // Update URL when filters change (desktop)
+  const updateURL = (filters: FilterState) => {
+    const params = new URLSearchParams();
+    if (filters.category) params.set('category', filters.category.toLowerCase());
+    if (filters.hall) params.set('hall', filters.hall.toLowerCase());
+    if (filters.experience) params.set('experience', filters.experience);
+    if (filters.minPrice && filters.minPrice !== 0) params.set('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice && filters.maxPrice !== 50000) params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.search) params.set('search', filters.search);
+    if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
+
+    const queryString = params.toString();
+    const newURL = queryString ? `/services?${queryString}` : '/services';
+    router.push(newURL, { scroll: false });
+  };
 
   const handleFilterChange = (filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters: FilterState = {
@@ -225,50 +206,52 @@ export default function ServicesContent() {
         break;
     }
 
-    // Update URL immediately for desktop, but delay for mobile to prevent modal closing
+    // Update URL (with a delay for mobile)
     if (isMobile) {
-      // Small delay to allow the select to close properly first
       setTimeout(() => {
         updateURL(filters);
       }, 50);
     } else {
       updateURL(filters);
     }
-  }
+  };
 
   const clearFilters = () => {
     setSelectedCategory('');
     setSelectedHall('');
     setSelectedExperienceRange('');
     setMinPrice([0]);
-    setMaxPrice([10000]);
+    setMaxPrice([50000]);
     setSearchQuery('');
     setSortBy('newest');
     router.push('/services');
-  }
+  };
 
-  const filteredServices = services.filter((service: Service) => {
-    const matchesSearch = !searchQuery || 
-      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = !selectedCategory || service.category === selectedCategory;
-    const matchesHall = !selectedHall || service.addressHall === selectedHall;
-    let matchesExperience = true;
-    if (selectedExperienceRange) {
-      const expRange = EXPERIENCE_RANGES.find(r => r.value === selectedExperienceRange);
-      if (expRange && service.experienceYears !== undefined && service.experienceYears !== null) {
-        const exp = service.experienceYears || 0;
-        matchesExperience = exp >= expRange.min && exp <= expRange.max;
-      } else if (expRange && (service.experienceYears === undefined || service.experienceYears === null)) {
-        matchesExperience = false;
-      }
-    }
-    const serviceMinPrice = service.minPrice || 0;
-    const serviceMaxPrice = service.maxPrice || serviceMinPrice || 0;
-    const matchesPrice = serviceMinPrice >= minPrice[0] && serviceMaxPrice <= maxPrice[0];
-    
-    return matchesSearch && matchesCategory && matchesHall && matchesExperience && matchesPrice;
-  });
+  // For fuzzy search, if active use fuzzyResults; otherwise filter locally.
+  const filteredServices = useFuzzySearch
+    ? fuzzyResults
+    : services.filter((service: Service) => {
+        const matchesSearch = !searchQuery ||
+          service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        const matchesCategory = !selectedCategory || service.category === selectedCategory;
+        const matchesHall = !selectedHall || service.addressHall === selectedHall;
+        let matchesExperience = true;
+        if (selectedExperienceRange) {
+          const expRange = EXPERIENCE_RANGES.find(r => r.value === selectedExperienceRange);
+          if (expRange && service.experienceYears != null) {
+            const exp = service.experienceYears || 0;
+            matchesExperience = exp >= expRange.min && exp <= expRange.max;
+          } else {
+            matchesExperience = false;
+          }
+        }
+        const serviceMinPrice = service.minPrice || 0;
+        const serviceMaxPrice = service.maxPrice || serviceMinPrice || 0;
+        const matchesPrice = serviceMinPrice >= minPrice[0] && serviceMaxPrice <= maxPrice[0];
+
+        return matchesSearch && matchesCategory && matchesHall && matchesExperience && matchesPrice;
+      });
 
   const sortedServices = [...filteredServices].sort((a: Service, b: Service) => {
     switch (sortBy) {
@@ -295,10 +278,35 @@ export default function ServicesContent() {
       currency: 'INR',
       maximumFractionDigits: 0
     }).format(amount);
-  }
+  };
 
-  const hasActiveFilters = selectedCategory || selectedHall || selectedExperienceRange || 
-                          minPrice[0] > 0 || maxPrice[0] < 10000 || searchQuery;
+  const hasActiveFilters = selectedCategory || selectedHall || selectedExperienceRange ||
+    minPrice[0] > 0 || maxPrice[0] < 50000 || searchQuery;
+
+  // Mobile modal click-outside handler already defined in useEffect above
+
+  const FilterDropdown = ({ label, value, onValueChange, options, placeholder }: FilterDropdownProps) => (
+    <div className="mb-4" onClick={(e) => e.stopPropagation()}>
+      <Label className="text-sm font-medium mb-2 block">{label}</Label>
+      <Select value={value || "all"} onValueChange={(val) => onValueChange(val)}>
+        <SelectTrigger className="glass border-white/20">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent className="glass" data-radix-select-content sideOffset={5}>
+          <SelectItem value="all" data-radix-select-item>All {label}</SelectItem>
+          {options.map((option) => (
+            <SelectItem
+              key={typeof option === 'string' ? option : option.value}
+              value={typeof option === 'string' ? option : option.value.toString()}
+              data-radix-select-item
+            >
+              {typeof option === 'string' ? formatEnumName(option) : option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   if (loading) {
     return (
@@ -312,32 +320,6 @@ export default function ServicesContent() {
       </MainLayout>
     );
   }
-
-  const FilterDropdown = ({ label, value, onValueChange, options, placeholder}: FilterDropdownProps) => (
-    <div className="mb-4" onClick={(e) => e.stopPropagation()}>
-      <Label className="text-sm font-medium mb-2 block">{label}</Label>
-      <Select 
-        value={value || "all"} 
-        onValueChange={(val) => onValueChange(val)}
-      >
-        <SelectTrigger className="glass border-white/20">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent className="glass" data-radix-select-content sideOffset={5}>
-          <SelectItem value="all" data-radix-select-item>All {label}</SelectItem>
-          {options.map((option) => (
-            <SelectItem 
-              key={typeof option === 'string' ? option : option.value} 
-              value={typeof option === 'string' ? option : option.value.toString()}
-              data-radix-select-item
-            >
-              {typeof option === 'string' ? formatEnumName(option) : option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
 
   return (
     <MainLayout>
@@ -367,7 +349,6 @@ export default function ServicesContent() {
                   )}
                 </div>
 
-                {/* Category Filter */}
                 <FilterDropdown
                   label="Category"
                   value={selectedCategory}
@@ -376,7 +357,6 @@ export default function ServicesContent() {
                   placeholder="Select category"
                 />
 
-                {/* Hall Filter */}
                 <FilterDropdown
                   label="Hall"
                   value={selectedHall}
@@ -385,7 +365,6 @@ export default function ServicesContent() {
                   placeholder="Select hall"
                 />
 
-                {/* Experience Filter */}
                 <FilterDropdown
                   label="Experience"
                   value={selectedExperienceRange}
@@ -396,7 +375,6 @@ export default function ServicesContent() {
 
                 <Separator className="my-6" />
 
-                {/* Price Range Sliders */}
                 <div className="mb-6">
                   <Label className="text-sm font-medium mb-3 block">
                     Min Price: {formatCurrency(minPrice[0])}
@@ -444,7 +422,6 @@ export default function ServicesContent() {
               {/* Top Bar - Search and Controls */}
               <div className="glass-card p-3 sm:p-4 mb-4 sm:mb-6">
                 <div className="flex flex-col space-y-3 sm:space-y-4">
-                  {/* Search */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
@@ -454,10 +431,7 @@ export default function ServicesContent() {
                       className="pl-10 glass border-white/20"
                     />
                   </div>
-
-                  {/* Controls Row */}
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                    {/* Mobile Filter Button */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -467,9 +441,7 @@ export default function ServicesContent() {
                       <Filter className="w-4 h-4 mr-2" />
                       Filters
                     </Button>
-
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                      {/* Sort */}
                       <Select value={sortBy} onValueChange={(value) => handleFilterChange('sort', value)}>
                         <SelectTrigger className="w-full sm:w-48 glass border-white/20">
                           <SelectValue placeholder="Sort by" />
@@ -484,7 +456,6 @@ export default function ServicesContent() {
                         </SelectContent>
                       </Select>
 
-                      {/* View Mode - Updated with 3 options */}
                       <div className="flex rounded-lg glass border border-white/20 p-1 w-fit mx-auto sm:mx-0">
                         <Button
                           variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -522,61 +493,42 @@ export default function ServicesContent() {
                     </div>
                   </div>
 
-                  {/* Active Filters */}
                   {hasActiveFilters && (
                     <div className="flex flex-wrap gap-2 pt-3 border-t border-white/10">
                       {selectedCategory && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           {SERVICE_CATEGORY_TEXT_MAP[selectedCategory as keyof typeof SERVICE_CATEGORY_TEXT_MAP] || formatEnumName(selectedCategory)}
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('category', '')}
-                          />
+                          <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => handleFilterChange('category', '')} />
                         </Badge>
                       )}
                       {selectedHall && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           {selectedHall}
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('hall', '')}
-                          />
+                          <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => handleFilterChange('hall', '')} />
                         </Badge>
                       )}
                       {selectedExperienceRange && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           {EXPERIENCE_RANGES.find(r => r.value === selectedExperienceRange)?.label}
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('experience', '')}
-                          />
+                          <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => handleFilterChange('experience', '')} />
                         </Badge>
                       )}
                       {minPrice[0] > 0 && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           Min: {formatCurrency(minPrice[0])}
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('minPrice', 0)}
-                          />
+                          <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => handleFilterChange('minPrice', 0)} />
                         </Badge>
                       )}
-                      {maxPrice[0] < 10000 && (
+                      {maxPrice[0] < 50000 && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           Max: {formatCurrency(maxPrice[0])}
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('maxPrice', 10000)}
-                          />
+                          <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => handleFilterChange('maxPrice', 50000)} />
                         </Badge>
                       )}
                       {searchQuery && (
                         <Badge variant="secondary" className="flex items-center gap-1">
                           &ldquo;{searchQuery}&rdquo;
-                          <X 
-                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
-                            onClick={() => handleFilterChange('search', '')}
-                          />
+                          <X className="w-3 h-3 cursor-pointer hover:text-destructive" onClick={() => handleFilterChange('search', '')} />
                         </Badge>
                       )}
                     </div>
@@ -584,14 +536,12 @@ export default function ServicesContent() {
                 </div>
               </div>
 
-              {/* Results Count */}
               <div className="mb-4 sm:mb-6 px-1">
                 <p className="text-muted-foreground text-sm">
                   {sortedServices.length} service{sortedServices.length !== 1 ? 's' : ''} found
                 </p>
               </div>
 
-              {/* Services Grid/List/Compact */}
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {sortedServices.map((service: Service) => (
@@ -614,13 +564,6 @@ export default function ServicesContent() {
                           <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
                             {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
                           </Badge>
-                          {/* {service.experienceYears !== undefined && service.experienceYears !== null && (
-                            <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {service.experienceYears}+ yrs
-                            </Badge>
-                          )} */}
-                          {/* Green tick for portfolio URL */}
                           {service.portfolioUrl && (
                             <div className="absolute bottom-2 right-2 bg-green-500 text-white rounded-full p-1">
                               <Check className="w-3 h-3" />
@@ -634,23 +577,13 @@ export default function ServicesContent() {
                           </p>
                           <div className="flex items-center space-x-2 mb-2 flex-wrap">
                             <span className="font-bold text-base sm:text-lg text-primary">
-                              {service.minPrice && service.maxPrice ? (
-                                `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                              ) : service.minPrice ? (
-                                `From ${formatCurrency(service.minPrice)}`
-                              ) : (
-                                'Price on request'
-                              )}
+                              {service.minPrice && service.maxPrice
+                                ? `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                                : service.minPrice
+                                ? `From ${formatCurrency(service.minPrice)}`
+                                : 'Price on request'}
                             </span>
                           </div>
-                          {/* <div className="flex items-center justify-between flex-wrap gap-2">
-                            {service.addressHall && (
-                              <div className="flex items-center text-xs text-muted-foreground">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {service.addressHall}
-                              </div>
-                            )}
-                          </div> */}
                         </CardContent>
                       </Card>
                     </Link>
@@ -676,14 +609,9 @@ export default function ServicesContent() {
                             </div>
                           )}
                           <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
-                            {SERVICE_CATEGORY_TEXT_MAP[service.category]?.split(' ')[0] || formatEnumName(service.category || 'OTHER')}
+                            {SERVICE_CATEGORY_TEXT_MAP[service.category]?.split(' ')[0] ||
+                              formatEnumName(service.category || 'OTHER')}
                           </Badge>
-                          {/* {service.experienceYears !== undefined && service.experienceYears !== null && (
-                            <Badge className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5">
-                              {service.experienceYears}+
-                            </Badge>
-                          )} */}
-                          {/* Green tick for portfolio URL */}
                           {service.portfolioUrl && (
                             <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-0.5">
                               <Check className="w-2 h-2" />
@@ -694,18 +622,13 @@ export default function ServicesContent() {
                           <h3 className="font-semibold text-xs line-clamp-2 mb-1 leading-tight">{service.title}</h3>
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-bold text-sm text-primary">
-                              {service.minPrice && service.maxPrice ? (
-                                `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                              ) : service.minPrice ? (
-                                `From ${formatCurrency(service.minPrice)}`
-                              ) : (
-                                'Price on request'
-                              )}
+                              {service.minPrice && service.maxPrice
+                                ? `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                                : service.minPrice
+                                ? `From ${formatCurrency(service.minPrice)}`
+                                : 'Price on request'}
                             </span>
                           </div>
-                          {/* {service.addressHall && (
-                            <p className="text-xs text-muted-foreground truncate">{service.addressHall}</p>
-                          )} */}
                         </CardContent>
                       </Card>
                     </Link>
@@ -718,7 +641,6 @@ export default function ServicesContent() {
                       <Card className="glass-card hover-lift overflow-hidden mb-2">
                         <CardContent className="p-3 sm:p-6">
                           <div className="flex gap-3 sm:gap-4">
-                            {/* Larger Image Container */}
                             <div className="w-28 h-32 sm:w-32 sm:h-24 md:w-40 md:h-32 relative overflow-hidden rounded-lg flex-shrink-0">
                               {service.images && service.images.length > 0 ? (
                                 <Image
@@ -733,68 +655,36 @@ export default function ServicesContent() {
                                   <span className="text-xs text-muted-foreground">No image</span>
                                 </div>
                               )}
-                              
-                              {/* Experience Badge on Image */}
-                              {/* {service.experienceYears !== undefined && service.experienceYears !== null && (
-                                <Badge className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {service.experienceYears}+ yrs
-                                </Badge>
-                              )} */}
-                              
-                              {/* Green tick for portfolio URL */}
                               {service.portfolioUrl && (
                                 <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-1">
                                   <Check className="w-2 h-2 sm:w-3 sm:h-3" />
                                 </div>
                               )}
                             </div>
-                            
-                            {/* Content Area */}
                             <div className="flex-1 min-w-0 overflow-hidden">
                               <div className="flex justify-between items-start mb-2 gap-2">
-                                {/* Left side - Title */}
                                 <div className="min-w-0 flex-1">
                                   <h3 className="font-semibold text-sm sm:text-base md:text-lg line-clamp-1 mb-1">
                                     {service.title}
                                   </h3>
                                 </div>
                               </div>
-                              
-                              {/* Description */}
                               <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 line-clamp-2">
                                 {service.description || 'No description available'}
                               </p>
-                              
-                              {/* Bottom Row - Price and Details */}
                               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
-                                {/* Left side - Price */}
                                 <div className="flex items-baseline space-x-2 flex-wrap">
                                   <span className="font-bold text-base sm:text-lg md:text-xl text-primary">
-                                    {service.minPrice && service.maxPrice ? (
-                                      `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                                    ) : service.minPrice ? (
-                                      `From ${formatCurrency(service.minPrice)}`
-                                    ) : (
-                                      'Price on request'
-                                    )}
+                                    {service.minPrice && service.maxPrice
+                                      ? `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                                      : service.minPrice
+                                      ? `From ${formatCurrency(service.minPrice)}`
+                                      : 'Price on request'}
                                   </span>
                                 </div>
-                                
-                                {/* Right side - Hall */}
-                                {/* <div className="flex items-center space-x-2 flex-wrap text-xs sm:text-sm">
-                                  {service.addressHall && (
-                                    <div className="flex items-center text-muted-foreground whitespace-nowrap">
-                                      <MapPin className="w-3 h-3 mr-1" />
-                                      {service.addressHall}
-                                    </div>
-                                  )}
-                                </div> */}
-                                                                {/* Category Badge */}
-<Badge className="bg-primary text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap flex items-center justify-center">
-  {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
-</Badge>
-
+                                <Badge className="bg-primary text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap flex items-center justify-center">
+                                  {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
+                                </Badge>
                               </div>
                             </div>
                           </div>
@@ -805,7 +695,6 @@ export default function ServicesContent() {
                 </div>
               )}
 
-              {/* No Results */}
               {sortedServices.length === 0 && (
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
@@ -819,7 +708,6 @@ export default function ServicesContent() {
           </div>
         </div>
 
-        {/* Mobile Filter Modal */}
         {showMobileFilters && (
           <div className="fixed inset-0 bg-black/50 z-50 lg:hidden">
             <div 
@@ -828,16 +716,10 @@ export default function ServicesContent() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-semibold">Filters</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowMobileFilters(false)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setShowMobileFilters(false)}>
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-
-              {/* Mobile filter content - Prevent event propagation */}
               <div onClick={(e) => e.stopPropagation()}>
                 <FilterDropdown
                   label="Category"
@@ -847,7 +729,6 @@ export default function ServicesContent() {
                   placeholder="Select category"
                   isMobile={true}
                 />
-
                 <FilterDropdown
                   label="Hall"
                   value={selectedHall}
@@ -856,7 +737,6 @@ export default function ServicesContent() {
                   placeholder="Select hall"
                   isMobile={true}
                 />
-
                 <FilterDropdown
                   label="Experience"
                   value={selectedExperienceRange}
@@ -865,10 +745,7 @@ export default function ServicesContent() {
                   placeholder="Select experience"
                   isMobile={true}
                 />
-
                 <Separator className="my-6" />
-
-                {/* Price Range Sliders */}
                 <div className="mb-6">
                   <Label className="text-sm font-medium mb-3 block">
                     Min Price: {formatCurrency(minPrice[0])}
@@ -888,7 +765,6 @@ export default function ServicesContent() {
                     </div>
                   </div>
                 </div>
-
                 <div className="mb-6">
                   <Label className="text-sm font-medium mb-3 block">
                     Max Price: {formatCurrency(maxPrice[0])}
@@ -909,7 +785,6 @@ export default function ServicesContent() {
                   </div>
                 </div>
               </div>
-
               <div className="flex gap-2 mt-6">
                 <Button onClick={clearFilters} variant="outline" className="flex-1">
                   Clear All
@@ -923,5 +798,5 @@ export default function ServicesContent() {
         )}
       </div>
     </MainLayout>
-  )
+  );
 }

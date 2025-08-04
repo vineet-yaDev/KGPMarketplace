@@ -12,8 +12,8 @@ export default function AboutUsPage() {
   const teamMembers = [
     {
       name: "Vineet Yadav",
-      role: "Co-Founder & Full Stack Developer",
-      image: "https://instagram.fdel29-1.fna.fbcdn.net/v/t51.2885-19/524303574_18283115689256852_1296167989183588943_n.jpg?efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLmRqYW5nby4xMDgwLmMyIn0&_nc_ht=instagram.fdel29-1.fna.fbcdn.net&_nc_cat=108&_nc_oc=Q6cZ2QEvntDKAgcAfjjM0EtO8wfWzXFn8c1ThgIGPrzR7UVYyn3nszCupjVJeio_xS0G7aw&_nc_ohc=OFdlRVxhu0kQ7kNvwGhTIYP&_nc_gid=rwpP0OxW4szhYE5QCeD5Kg&edm=AP4sbd4BAAAA&ccb=7-5&oh=00_AfTHBUkxSKr_e8-JTuy7yj4CgqtPeWhWfWI8d6zCWbTCfg&oe=6894D380&_nc_sid=7a9f4b",
+      role: "Co-Founder & CTO",
+      image: "",
       bio: "Curious by nature, I co-founded my current venture to solve real problems through intuitive digital products. As a full stack developer, I focus on building reliable, scalable solutions with React, Node.js, TypeScript, and NextJS. I enjoy turning complex challenges into user-friendly experiences and always look for ways to learn and collaborate along the way.",
       skills: ["NextJS", "PostgreSQL", "TypeScript", "Tailwind"],
       social: {
@@ -26,8 +26,8 @@ export default function AboutUsPage() {
     },
     {
       name: "Sudeep Bhurat",
-      role: "Co-Founder & Product Manager",
-      image: "/images/Sudeep.jpg",
+      role: "Co-Founder & CEO",
+      image: "",
       bio: "Co-Founder and Product Manager passionate about making things easier and more enjoyable for people. Focused on turning ideas into practical solutions, Sudeep collaborates closely with teams to ensure every product feels simple and approachable for users.",
       skills: ["Figma", "Design Systems", "User Researchs", "Prototyping"],
       social: {
