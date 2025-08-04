@@ -1,4 +1,3 @@
-// MainLayout.tsx (Full Code)
 'use client'
 
 import { ReactNode, useState, useEffect, useRef } from 'react'
@@ -19,7 +18,7 @@ import {
   Moon,
   Package,
   LogOut,
-  Loader2, // Import a loader icon
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,11 +31,13 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
-import { useSearch } from '@/hooks/useSearch' // Import your search hook
+import { useSearch } from '@/hooks/useSearch'
+
 
 interface MainLayoutProps {
   children: ReactNode
 }
+
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { isAuthenticated, user } = useAuth()
@@ -45,50 +46,44 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isSearchFocused, setIsSearchFocused] = useState(false) // State to control dropdown visibility
-  const searchContainerRef = useRef<HTMLDivElement>(null) // Ref to detect clicks outside search
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const searchContainerRef = useRef<HTMLDivElement>(null)
 
-  // Use the search hook
   const { search, results, loading, error } = useSearch()
 
-  // Handle changes to the search input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value
     setSearchQuery(query)
-    search(query) // This triggers the debounced search in the hook
+    search(query)
   }
-  
-  // Handle form submission (when user presses Enter)
+
   const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (searchQuery.trim().length > 0) {
-      // Default to searching products page if user presses Enter
-      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-      setIsSearchFocused(false); // Hide dropdown on submit
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
+      setIsSearchFocused(false)
+      setIsMobileMenuOpen(false) // Close mobile menu if open
     }
   }
-  
-  // Close dropdown when clicking outside the search container
+
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsSearchFocused(false);
+        setIsSearchFocused(false)
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside)
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [searchContainerRef]);
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [searchContainerRef])
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' })
     router.push('/')
   }
 
-  const isActivePath = (path: string) => {
-    return pathname === path
-  }
+  const isActivePath = (path: string) => pathname === path
 
   const navigationLinks = [
     { href: '/products', label: 'Products', icon: ShoppingBag },
@@ -96,13 +91,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { href: '/demand', label: 'Demand', icon: MessageSquare },
   ]
 
-  const profileMenuItems = isAuthenticated ? [
-    { href: `/user/${user?.id}`, label: 'My Listings', icon: Package },
-  ] : []
+  const profileMenuItems = isAuthenticated
+    ? [{ href: `/user/${user?.id}`, label: 'My Listings', icon: Package }]
+    : []
 
-  // Logic to decide when to show the dropdown
-  const showDropdown = isSearchFocused && searchQuery.length > 1;
-  const hasResults = results && results.total > 0;
+  const showDropdown = isSearchFocused && searchQuery.length > 1
+  const hasResults = results && results.total > 0
 
   return (
     <div className="min-h-screen bg-gradient-surface">
@@ -110,8 +104,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <header className="sticky top-0 z-50 glass-nav">
         <div className="container mx-auto px-2 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
-            {/* Logo - Responsive */}
-            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-smooth flex-shrink-0">
+            {/* Logo */}
+            <Link
+              href="/"
+              className="flex items-center space-x-2 hover:opacity-80 transition-smooth flex-shrink-0"
+            >
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
                 <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
@@ -120,8 +117,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </span>
             </Link>
 
-            {/* --- Desktop Search Bar Area --- */}
-            <div ref={searchContainerRef} className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8 relative">
+            {/* Desktop Search Bar */}
+            <div
+              ref={searchContainerRef}
+              className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8 relative"
+            >
               <form onSubmit={handleSearchSubmit} className="w-full">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -130,14 +130,14 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     placeholder="Search products, services..."
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    onFocus={() => setIsSearchFocused(true)} // Show dropdown on focus
+                    onFocus={() => setIsSearchFocused(true)}
                     className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
                     autoComplete="off"
                   />
                 </div>
               </form>
-              
-              {/* --- Search Results Dropdown --- */}
+
+              {/* Search dropdown */}
               {showDropdown && (
                 <div className="absolute top-full mt-2 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
                   {loading && (
@@ -146,26 +146,48 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       Searching...
                     </div>
                   )}
-                  {!loading && error && (
-                     <div className="p-2 text-center text-destructive">{error}</div>
-                  )}
+                  {!loading && error && <div className="p-2 text-center text-destructive">{error}</div>}
                   {!loading && !error && results && (
                     <>
                       {hasResults ? (
-                        <div className='space-y-1'>
+                        <div className="space-y-1">
                           {results.products.length > 0 && (
-                            <Link href={`/products?search=${encodeURIComponent(searchQuery)}`} onClick={() => setIsSearchFocused(false)} className='flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10'>
-                               <ShoppingBag className="mr-3 h-4 w-4 text-primary" /> <span>{results.products.length} product{results.products.length > 1 ? 's' : ''} found</span>
+                            <Link
+                              href={`/products?search=${encodeURIComponent(searchQuery)}`}
+                              onClick={() => setIsSearchFocused(false)}
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                            >
+                              <ShoppingBag className="mr-3 h-4 w-4 text-primary" />{' '}
+                              <span>
+                                {results.products.length} product
+                                {results.products.length > 1 ? 's' : ''} found
+                              </span>
                             </Link>
                           )}
                           {results.services.length > 0 && (
-                             <Link href={`/services?search=${encodeURIComponent(searchQuery)}`} onClick={() => setIsSearchFocused(false)} className='flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10'>
-                               <Briefcase className="mr-3 h-4 w-4 text-primary" /> <span>{results.services.length} service{results.services.length > 1 ? 's' : ''} found</span>
+                            <Link
+                              href={`/services?search=${encodeURIComponent(searchQuery)}`}
+                              onClick={() => setIsSearchFocused(false)}
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                            >
+                              <Briefcase className="mr-3 h-4 w-4 text-primary" />{' '}
+                              <span>
+                                {results.services.length} service
+                                {results.services.length > 1 ? 's' : ''} found
+                              </span>
                             </Link>
                           )}
-                           {results.demands.length > 0 && (
-                             <Link href={`/demand?search=${encodeURIComponent(searchQuery)}`} onClick={() => setIsSearchFocused(false)} className='flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10'>
-                               <MessageSquare className="mr-3 h-4 w-4 text-primary" /> <span>{results.demands.length} demand{results.demands.length > 1 ? 's' : ''} found</span>
+                          {results.demands.length > 0 && (
+                            <Link
+                              href={`/demand?search=${encodeURIComponent(searchQuery)}`}
+                              onClick={() => setIsSearchFocused(false)}
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                            >
+                              <MessageSquare className="mr-3 h-4 w-4 text-primary" />{' '}
+                              <span>
+                                {results.demands.length} demand
+                                {results.demands.length > 1 ? 's' : ''} found
+                              </span>
                             </Link>
                           )}
                         </div>
@@ -177,7 +199,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </div>
               )}
             </div>
-            {/* --- END OF SEARCH AREA --- */}
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-4 xl:space-x-6">
@@ -186,7 +207,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   key={href}
                   href={href}
                   className={`text-sm font-medium transition-colors hover:text-primary ${
-                    isActivePath(href) ? 'text-primary' : 'text-foreground hover:text-foreground/80 dark:hover:text-foreground'
+                    isActivePath(href)
+                      ? 'text-primary'
+                      : 'text-foreground hover:text-foreground/80 dark:hover:text-foreground'
                   }`}
                 >
                   {label}
@@ -205,7 +228,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </Button>
                 </Link>
               ) : (
-                <Button 
+                <Button
                   onClick={() => signIn('google', { callbackUrl: '/add' })}
                   className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold text-sm sm:text-base px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 border border-white/20"
                 >
@@ -214,9 +237,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </Button>
               )}
               {/* Theme Toggle */}
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="glass-button dark:hover:bg-white/10 p-2"
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               >
@@ -228,7 +251,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
               {isAuthenticated ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full glass-button dark:hover:bg-white/10">
+                    <Button
+                      variant="ghost"
+                      className="relative h-8 w-8 rounded-full glass-button dark:hover:bg-white/10"
+                    >
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={user?.image || ''} alt={user?.name || ''} />
                         <AvatarFallback className="bg-gradient-primary text-white">
@@ -237,16 +263,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 glass-dropdown border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl" align="end">
+                  <DropdownMenuContent
+                    className="w-56 glass-dropdown border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl"
+                    align="end"
+                  >
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
-                        {user?.name && (
-                          <p className="font-medium text-foreground">{user.name}</p>
-                        )}
+                        {user?.name && <p className="font-medium text-foreground">{user.name}</p>}
                         {user?.email && (
-                          <p className="w-[200px] truncate text-sm text-muted-foreground">
-                            {user.email}
-                          </p>
+                          <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
                         )}
                       </div>
                     </div>
@@ -260,17 +285,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       </DropdownMenuItem>
                     ))}
                     <DropdownMenuSeparator className="bg-white/20" />
-                    <DropdownMenuItem onClick={handleSignOut} className="hover:bg-black/10 dark:hover:bg-white/10 text-foreground">
+                    <DropdownMenuItem
+                      onClick={handleSignOut}
+                      className="hover:bg-black/10 dark:hover:bg-white/10 text-foreground"
+                    >
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button 
+                <Button
                   onClick={() => signIn('google', { callbackUrl: '/' })}
-                  variant="outline" 
-                  size="sm" 
+                  variant="outline"
+                  size="sm"
                   className="glass-button border-white/20 dark:hover:bg-white/10 text-foreground hover:text-foreground"
                 >
                   <User className="h-4 w-4 mr-1" />
@@ -289,12 +317,92 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </div>
           </div>
         </div>
+
+        {/* Mobile Search Bar Below Navbar */}
+        <div ref={searchContainerRef} className="md:hidden container mx-auto px-4 pt-2 pb-2">
+          <form onSubmit={handleSearchSubmit} className="w-full relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <Input
+              type="text"
+              placeholder="Search products, services..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => setIsSearchFocused(true)}
+              className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
+              autoComplete="off"
+            />
+            {/* Search Results Dropdown */}
+            {showDropdown && (
+              <div className="absolute top-full mt-1 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
+                {loading && (
+                  <div className="flex items-center justify-center p-2 text-muted-foreground">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Searching...
+                  </div>
+                )}
+                {!loading && error && <div className="p-2 text-center text-destructive">{error}</div>}
+                {!loading && !error && results && (
+                  <>
+                    {hasResults ? (
+                      <div className="space-y-1">
+                        {results.products.length > 0 && (
+                          <Link
+                            href={`/products?search=${encodeURIComponent(searchQuery)}`}
+                            onClick={() => setIsSearchFocused(false)}
+                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                          >
+                            <ShoppingBag className="mr-3 h-4 w-4 text-primary" />{' '}
+                            <span>
+                              {results.products.length} product
+                              {results.products.length > 1 ? 's' : ''} found
+                            </span>
+                          </Link>
+                        )}
+                        {results.services.length > 0 && (
+                          <Link
+                            href={`/services?search=${encodeURIComponent(searchQuery)}`}
+                            onClick={() => setIsSearchFocused(false)}
+                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                          >
+                            <Briefcase className="mr-3 h-4 w-4 text-primary" />{' '}
+                            <span>
+                              {results.services.length} service
+                              {results.services.length > 1 ? 's' : ''} found
+                            </span>
+                          </Link>
+                        )}
+                        {results.demands.length > 0 && (
+                          <Link
+                            href={`/demand?search=${encodeURIComponent(searchQuery)}`}
+                            onClick={() => setIsSearchFocused(false)}
+                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                          >
+                            <MessageSquare className="mr-3 h-4 w-4 text-primary" />{' '}
+                            <span>
+                              {results.demands.length} demand
+                              {results.demands.length > 1 ? 's' : ''} found
+                            </span>
+                          </Link>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-2 text-center text-muted-foreground">No results found.</div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </form>
+        </div>
       </header>
 
-      {/* Mobile Navigation Sidebar */}
+      {/* Mobile Navigation Sidebar (unchanged...) */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
           <div className="fixed right-0 top-0 h-full w-64 sm:w-72 glass-sidebar border-l border-white/20 p-4 sm:p-6 bg-white/95 dark:bg-black/80 backdrop-blur-xl">
             <nav className="space-y-3 sm:space-y-4 mt-24 sm:mt-28">
               {navigationLinks.map(({ href, label, icon: Icon }) => (
@@ -302,7 +410,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   key={href}
                   href={href}
                   className={`flex items-center space-x-3 text-sm font-medium transition-colors p-3 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 ${
-                    isActivePath(href) ? 'text-primary bg-black/10 dark:bg-white/10' : 'text-foreground hover:text-foreground'
+                    isActivePath(href)
+                      ? 'text-primary bg-black/10 dark:bg-white/10'
+                      : 'text-foreground hover:text-foreground'
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -310,8 +420,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   <span>{label}</span>
                 </Link>
               ))}
-              
-              {/* Mobile menu authentication logic */}
+
               {isAuthenticated ? (
                 <>
                   <div className="my-4 border-t border-white/20" />
@@ -358,11 +467,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
       )}
 
       {/* Main Content */}
-      <main className="flex-1">
-        {children}
-      </main>
+      <main className="flex-1">{children}</main>
 
-      {/* Footer */}
+      {/* Footer (unchanged...) */}
       <footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
           <div className="text-center space-y-3 sm:space-y-4">
@@ -374,7 +481,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 KGP Marketplace
               </span>
             </div>
-            {/* About Us Button */}
             <div className="flex justify-center py-2">
               <Link href="/about">
                 <Button className="bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 hover:from-emerald-500 hover:via-purple-500 hover:to-blue-500 text-white font-semibold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-500 ease-in-out border border-white/20 backdrop-blur-sm">
@@ -385,9 +491,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <p className="text-xs sm:text-sm text-muted-foreground">
               Exclusive marketplace for IIT Kharagpur students
             </p>
-            <p className="text-xs text-muted-foreground">
-              © 2024 KGP Marketplace. All rights reserved.
-            </p>
+            <p className="text-xs text-muted-foreground">© 2024 KGP Marketplace. All rights reserved.</p>
           </div>
         </div>
       </footer>
