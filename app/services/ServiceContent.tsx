@@ -561,6 +561,12 @@ export default function ServicesContent() {
                               <span className="text-muted-foreground text-sm">No image</span>
                             </div>
                           )}
+                          {/* Show FREE badge if minPrice is 0, otherwise show category badge */}
+                          {service.minPrice === 0 ? (
+                            <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
+                              FREE
+                            </Badge>
+                          ) : null}
                           <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
                             {SERVICE_CATEGORY_TEXT_MAP[service.category] || formatEnumName(service.category || 'OTHER')}
                           </Badge>
@@ -576,12 +582,16 @@ export default function ServicesContent() {
                             {service.description || 'No description available'}
                           </p>
                           <div className="flex items-center space-x-2 mb-2 flex-wrap">
-                            <span className="font-bold text-base sm:text-lg text-primary">
-                              {service.minPrice && service.maxPrice
-                                ? `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                                : service.minPrice
-                                ? `From ${formatCurrency(service.minPrice)}`
-                                : 'Price on request'}
+                            <span className={`font-bold text-base sm:text-lg ${service.minPrice === 0 ? 'text-green-600' : 'text-primary'}`}>
+                              {service.minPrice === 0 ? (
+                                'FREE'
+                              ) : service.minPrice && service.maxPrice ? (
+                                `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                              ) : service.minPrice ? (
+                                `From ${formatCurrency(service.minPrice)}`
+                              ) : (
+                                'Price on request'
+                              )}
                             </span>
                           </div>
                         </CardContent>
@@ -608,6 +618,12 @@ export default function ServicesContent() {
                               <span className="text-muted-foreground text-xs">No image</span>
                             </div>
                           )}
+                          {/* Show FREE badge if minPrice is 0 */}
+                          {service.minPrice === 0 && (
+                            <Badge className="absolute top-1 right-1 bg-green-500 text-white text-xs px-1 py-0.5">
+                              FREE
+                            </Badge>
+                          )}
                           <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
                             {SERVICE_CATEGORY_TEXT_MAP[service.category]?.split(' ')[0] ||
                               formatEnumName(service.category || 'OTHER')}
@@ -621,12 +637,16 @@ export default function ServicesContent() {
                         <CardContent className="p-2">
                           <h3 className="font-semibold text-xs line-clamp-2 mb-1 leading-tight">{service.title}</h3>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-sm text-primary">
-                              {service.minPrice && service.maxPrice
-                                ? `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                                : service.minPrice
-                                ? `From ${formatCurrency(service.minPrice)}`
-                                : 'Price on request'}
+                            <span className={`font-bold text-sm ${service.minPrice === 0 ? 'text-green-600' : 'text-primary'}`}>
+                              {service.minPrice === 0 ? (
+                                'FREE'
+                              ) : service.minPrice && service.maxPrice ? (
+                                `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                              ) : service.minPrice ? (
+                                `From ${formatCurrency(service.minPrice)}`
+                              ) : (
+                                'Price on request'
+                              )}
                             </span>
                           </div>
                         </CardContent>
@@ -668,18 +688,28 @@ export default function ServicesContent() {
                                     {service.title}
                                   </h3>
                                 </div>
+                                {/* Show FREE badge if minPrice is 0 */}
+                                {service.minPrice === 0 && (
+                                  <Badge className="bg-green-500 text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap">
+                                    FREE
+                                  </Badge>
+                                )}
                               </div>
                               <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3 line-clamp-2">
                                 {service.description || 'No description available'}
                               </p>
                               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
                                 <div className="flex items-baseline space-x-2 flex-wrap">
-                                  <span className="font-bold text-base sm:text-lg md:text-xl text-primary">
-                                    {service.minPrice && service.maxPrice
-                                      ? `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                                      : service.minPrice
-                                      ? `From ${formatCurrency(service.minPrice)}`
-                                      : 'Price on request'}
+                                  <span className={`font-bold text-base sm:text-lg md:text-xl ${service.minPrice === 0 ? 'text-green-600' : 'text-primary'}`}>
+                                    {service.minPrice === 0 ? (
+                                      'FREE'
+                                    ) : service.minPrice && service.maxPrice ? (
+                                      `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
+                                    ) : service.minPrice ? (
+                                      `From ${formatCurrency(service.minPrice)}`
+                                    ) : (
+                                      'Price on request'
+                                    )}
                                   </span>
                                 </div>
                                 <Badge className="bg-primary text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap flex items-center justify-center">
@@ -694,6 +724,7 @@ export default function ServicesContent() {
                   ))}
                 </div>
               )}
+
 
               {sortedServices.length === 0 && (
                 <div className="text-center py-12">

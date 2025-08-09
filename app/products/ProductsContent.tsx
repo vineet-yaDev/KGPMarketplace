@@ -422,7 +422,7 @@ export default function ProductsContent() {
 
                 {/* Seasonality Filter */}
                 <FilterDropdown
-                  label="Seasonality"
+                  label="Tags"
                   value={selectedSeasonality}
                   onValueChange={(value: string) => handleFilterChange('seasonality', value)}
                   options={SEASONALITIES}
@@ -644,10 +644,17 @@ export default function ProductsContent() {
                               <span className="text-muted-foreground text-sm">No image</span>
                             </div>
                           )}
-                          {product.originalPrice && product.price && (
-                            <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
-                              {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                          {/* Show FREE badge if price is 0, otherwise show discount badge */}
+                          {product.price === 0 || !product.price ? (
+                            <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
+                              FREE
                             </Badge>
+                          ) : (
+                            product.originalPrice && product.price && (
+                              <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
+                                {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                              </Badge>
+                            )
                           )}
                           {/* <Badge className="absolute top-2 left-2 bg-primary text-white text-xs">
                             {PRODUCT_TYPE_TEXT_MAP[product.productType] || formatEnumName(product.productType || 'USED')}
@@ -665,12 +672,20 @@ export default function ProductsContent() {
                             {product.description || 'No description available'}
                           </p>
                           <div className="flex items-center justify-between space-x-2 mb-2 flex-wrap">
-  <div className="flex items-center space-x-2">
-    {product.price && (
-      <span className="font-bold text-base sm:text-lg text-primary">
-        {formatCurrency(product.price)}
+<div className="flex items-center space-x-2">
+    {/* Show FREE if price is 0, otherwise show regular price */}
+    {product.price === 0 || !product.price ? (
+      <span className="font-bold text-base sm:text-lg text-green-600">
+        FREE
       </span>
+    ) : (
+      product.price && (
+        <span className="font-bold text-base sm:text-lg text-primary">
+          {formatCurrency(product.price)}
+        </span>
+      )
     )}
+    {/* Strike through original price if it exists and current price is 0 (FREE) */}
     {product.originalPrice && (
       <span className="text-xs sm:text-sm text-muted-foreground line-through">
         {formatCurrency(product.originalPrice)}
@@ -710,10 +725,17 @@ export default function ProductsContent() {
                               <span className="text-muted-foreground text-xs">No image</span>
                             </div>
                           )}
-                          {product.originalPrice && product.price && (
-                            <Badge className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 py-0.5">
-                              {Math.round((1 - product.price / product.originalPrice) * 100)}%
+                          {/* Show FREE badge if price is 0, otherwise show discount badge */}
+                          {product.price === 0 || !product.price ? (
+                            <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs">
+                              FREE
                             </Badge>
+                          ) : (
+                            product.originalPrice && product.price && (
+                              <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
+                                {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                              </Badge>
+                            )
                           )}
                           {/* <Badge className="absolute top-1 left-1 bg-primary text-white text-xs px-1 py-0.5">
                             {PRODUCT_TYPE_TEXT_MAP[product.productType]?.split(' ')[0] || formatEnumName(product.productType || 'USED')}
@@ -728,11 +750,25 @@ export default function ProductsContent() {
                         <CardContent className="p-2">
                           <h3 className="font-semibold text-xs line-clamp-2 mb-1 leading-tight">{product.title}</h3>
                           <div className="flex items-center justify-between mb-1">
-                            {product.price && (
-                              <span className="font-bold text-sm text-primary">
-                                ₹{product.price < 1000 ? product.price : (product.price / 1000).toFixed(1) + 'K'}
-                              </span>
-                            )}
+                            {/* Show FREE if price is 0, otherwise show regular price */}
+    {product.price === 0 || !product.price ? (
+      <span className="font-bold text-base sm:text-lg text-green-600">
+        FREE
+      </span>
+    ) : (
+      product.price && (
+        <span className="font-bold text-base sm:text-lg text-primary">
+          {formatCurrency(product.price)}
+        </span>
+      )
+    )}
+    {/* Strike through original price if it exists and current price is 0 (FREE) */}
+    {product.originalPrice && (
+      <span className="text-xs sm:text-sm text-muted-foreground line-through">
+        {formatCurrency(product.originalPrice)}
+      </span>
+    )}
+
                             <Badge variant="secondary" className="text-xs px-1 py-0">
                               {product.condition}/5
                             </Badge>
@@ -797,10 +833,16 @@ export default function ProductsContent() {
                                 </div>
                                 
                                 {/* Right side - Discount Badge */}
-                                {product.originalPrice && product.price && (
-                                  <Badge className="bg-red-500 text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap">
-                                    {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                                {product.price === 0 ? (
+                                  <Badge className="bg-green-500 text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap">
+                                    FREE
                                   </Badge>
+                                ) : (
+                                  product.originalPrice && product.price && (
+                                    <Badge className="bg-red-500 text-white text-xs px-2 py-1 flex-shrink-0 whitespace-nowrap">
+                                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                                    </Badge>
+                                  )
                                 )}
                               </div>
                               
@@ -813,11 +855,19 @@ export default function ProductsContent() {
 <div className="flex flex-wrap items-center space-x-2 justify-between gap-2">
   {/* Left side - Price */}
   <div className="flex items-baseline space-x-2 flex-wrap">
-    {product.price && (
-      <span className="font-bold text-base sm:text-lg md:text-xl text-primary">
-        {formatCurrency(product.price)}
+    {/* Show FREE if price is 0, otherwise show regular price */}
+    {product.price === 0 || !product.price ? (
+      <span className="font-bold text-base sm:text-lg text-green-600">
+        FREE
       </span>
+    ) : (
+      product.price && (
+        <span className="font-bold text-base sm:text-lg text-primary">
+          {formatCurrency(product.price)}
+        </span>
+      )
     )}
+    {/* Strike through original price if it exists and current price is 0 (FREE) */}
     {product.originalPrice && (
       <span className="text-xs sm:text-sm text-muted-foreground line-through">
         {formatCurrency(product.originalPrice)}
@@ -921,7 +971,7 @@ export default function ProductsContent() {
               />
 
               <FilterDropdown
-                label="Seasonality"
+                label="Tags"
                 value={selectedSeasonality}
                 onValueChange={(value: string) => handleFilterChange('seasonality', value, true)}
                 options={SEASONALITIES}

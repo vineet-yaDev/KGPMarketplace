@@ -100,7 +100,7 @@ export default function AddContent() {
   const [productForm, setProductForm] = useState<ExtendedProductFormData>({
     title: '',
     description: '',
-    price: '',
+    price: '0',
     originalPrice: '',
     productType: DEFAULT_VALUES.PRODUCT_TYPE,
     condition: DEFAULT_VALUES.CONDITION.toString(),
@@ -118,7 +118,7 @@ export default function AddContent() {
   const [serviceForm, setServiceForm] = useState<ServiceFormData>({
     title: '',
     description: '',
-    minPrice: '',
+    minPrice: '0',
     maxPrice: '',
     category: DEFAULT_VALUES.SERVICE_CATEGORY,
     addressHall: 'RK' as KGPHalls,
@@ -245,7 +245,7 @@ export default function AddContent() {
           setProductForm({
             title: product.title || '',
             description: product.description || '',
-            price: product.price?.toString() || '',
+            price: product.price?.toString() || '0',
             originalPrice: product.originalPrice?.toString() || '',
             productType: product.productType || DEFAULT_VALUES.PRODUCT_TYPE,
             condition: product.condition?.toString() || DEFAULT_VALUES.CONDITION.toString(),
@@ -263,7 +263,7 @@ export default function AddContent() {
           setServiceForm({
             title: service.title || '',
             description: service.description || '',
-            minPrice: service.minPrice?.toString() || '',
+            minPrice: service.minPrice?.toString() || '0',
             maxPrice: service.maxPrice?.toString() || '',
             category: service.category || DEFAULT_VALUES.SERVICE_CATEGORY,
             addressHall: service.addressHall || 'RK',
@@ -397,7 +397,7 @@ export default function AddContent() {
       newErrors.title = `Title must be less than ${VALIDATION.MAX_TITLE_LENGTH} characters`
     }
     if (!productForm.category) newErrors.category = 'Category is required'
-    if (!productForm.price || parseFloat(productForm.price) <= 0) newErrors.price = 'Valid price is required'
+    if (!productForm.price || parseFloat(productForm.price) < 0) newErrors.price = 'Valid price is required'
     if (!productForm.addressHall) newErrors.addressHall = 'Hall is required'
     if (!productForm.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required'
     if (productForm.mobileNumber && !VALIDATION.MOBILE_NUMBER_REGEX.test(productForm.mobileNumber.replace(/\D/g, ''))) {
@@ -416,7 +416,7 @@ export default function AddContent() {
       newErrors.title = `Title must be at least ${VALIDATION.MIN_TITLE_LENGTH} characters`
     }
     if (!serviceForm.category) newErrors.category = 'Category is required'
-    if (!serviceForm.minPrice || parseFloat(serviceForm.minPrice) <= 0) newErrors.minPrice = 'Minimum price is required'
+    if (!serviceForm.minPrice || parseFloat(serviceForm.minPrice) < 0) newErrors.minPrice = 'Minimum price is required'
     if (!serviceForm.mobileNumber.trim()) newErrors.mobileNumber = 'Mobile number is required'
     if (serviceForm.mobileNumber && !VALIDATION.MOBILE_NUMBER_REGEX.test(serviceForm.mobileNumber.replace(/\D/g, ''))) {
       newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number'
@@ -810,7 +810,7 @@ export default function AddContent() {
                               />
                             </div>
                             <div className="space-y-1 sm:space-y-3">
-                              <Label htmlFor="product-seasonality" className="text-sm font-semibold">Seasonality</Label>
+                              <Label htmlFor="product-seasonality" className="text-sm font-semibold">Tags</Label>
                               <Select 
                                 value={productForm.seasonality} 
                                 onValueChange={(value) => setProductForm({...productForm, seasonality: value as ProductSeasonality})}

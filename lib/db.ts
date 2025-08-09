@@ -194,18 +194,24 @@ export async function getProductsByUserEmail(email: string): Promise<Product[]> 
   }
 }
 
-export async function getAllProducts(): Promise<Product[]> {
+export async function getAllProducts(limit?: number, sort?: string | null): Promise<Product[]> {
   try {
+    // Determine the order based on sort parameter
+    const orderBy = sort === 'newest' ? { createdAt: 'desc' as const} : { createdAt: 'desc' as const }
+    
     return await prisma.product.findMany({
       where: { status: 'LISTED' },
       include: { owner: ownerSelect },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
+      // Apply limit if provided
+      ...(limit && { take: limit }),
     });
   } catch (error) {
     console.error('Error fetching all products:', error);
     return [];
   }
 }
+
 
 // =================================================================
 // S E R V I C E   O P E R A T I O N S
@@ -278,17 +284,23 @@ export async function getServicesByUserEmail(email: string): Promise<Service[]> 
   }
 }
 
-export async function getAllServices(): Promise<Service[]> {
+export async function getAllServices(limit?: number, sort?: string | null): Promise<Service[]> {
   try {
+    // Determine the order based on sort parameter
+    const orderBy = sort === 'newest' ? { createdAt: 'desc' as const } : { createdAt: 'desc' as const }
+    
     return await prisma.service.findMany({
       include: { owner: ownerSelect },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
+      // Apply limit if provided
+      ...(limit && { take: limit }),
     });
   } catch (error) {
     console.error('Error fetching all services:', error);
     return [];
   }
 }
+
 
 // =================================================================
 // D E M A N D   O P E R A T I O N S

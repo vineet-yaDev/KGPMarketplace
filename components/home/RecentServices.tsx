@@ -48,6 +48,32 @@ export default function RecentServices({ className = "" }: RecentServicesProps) 
     }).format(amount)
   }
 
+  const getPriceDisplay = (service: Service) => {
+    const { minPrice, maxPrice } = service
+    
+    // If min price is zero and max price is present, show "FREE - max price"
+    if (minPrice === 0 && maxPrice && maxPrice > 0) {
+      return `FREE - ${formatCurrency(maxPrice)}`
+    }
+    
+    // If max price is not present and only min price is present and minPrice > 0, show "From minPrice"
+    if (minPrice && minPrice > 0 && !maxPrice) {
+      return `From ${formatCurrency(minPrice)}`
+    }
+    
+    // If both prices are present and min > 0, show range
+    if (minPrice && minPrice > 0 && maxPrice && maxPrice > 0) {
+      return `${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}`
+    }
+    
+    // If min price is zero or both prices are not present, show "Price on request"
+    return 'Price on request'
+  }
+
+  const shouldShowFreeBadge = (service: Service) => {
+    return service.minPrice === 0
+  }
+
   if (loading) {
     return (
       <section className={`mb-12 px-4 py-8 max-w-7xl mx-auto ${className}`}>
@@ -77,8 +103,15 @@ export default function RecentServices({ className = "" }: RecentServicesProps) 
       
       {/* Services Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {recentServices.map((service) => (
-          <Link key={service.id} href={`/services/${service.id}`} className="group">
+        {recentServices.map((service, index) => (
+          <Link 
+            key={service.id} 
+            href={`/services/${service.id}`} 
+            className={`group ${
+              // Hide services 5-8 on mobile (show only first 4)
+              index >= 4 ? 'hidden sm:block' : ''
+            }`}
+          >
             <Card className="glass-card hover-lift overflow-hidden h-full">
               <div className="aspect-video relative overflow-hidden">
                 {service.images && service.images.length > 0 ? (
@@ -93,6 +126,13 @@ export default function RecentServices({ className = "" }: RecentServicesProps) 
                   <div className="w-full h-full bg-muted flex items-center justify-center">
                     <span className="text-muted-foreground text-sm">No image</span>
                   </div>
+                )}
+                
+                {/* FREE badge if minPrice is 0 - top right */}
+                {shouldShowFreeBadge(service) && (
+                  <Badge className="absolute top-2 right-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 shadow-lg">
+                    FREE
+                  </Badge>
                 )}
                 
                 {/* Category badge - top left */}
@@ -117,14 +157,8 @@ export default function RecentServices({ className = "" }: RecentServicesProps) 
                 {/* Price Range */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline space-x-2">
-                    <span className="font-bold text-lg text-primary">
-                      {service.minPrice && service.maxPrice ? (
-                        `${formatCurrency(service.minPrice)} - ${formatCurrency(service.maxPrice)}`
-                      ) : service.minPrice ? (
-                        `From ${formatCurrency(service.minPrice)}`
-                      ) : (
-                        'Quote'
-                      )}
+                    <span className={`font-bold text-lg ${shouldShowFreeBadge(service) ? 'text-green-600' : 'text-primary'}`}>
+                      {getPriceDisplay(service)}
                     </span>
                   </div>
                   {service.experienceYears !== undefined && service.experienceYears !== null && (

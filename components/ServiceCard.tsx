@@ -66,12 +66,20 @@ export default function ServiceCard({ service, compact = false }: ServiceCardPro
 
         {/* Price Range */}
         <div className="flex items-center space-x-2">
+          {(!service.minPrice || service.minPrice===0) && (!service.maxPrice || service.maxPrice===0)
+          ? (
+          <Badge className="glass text-white bg-gradient-secondary">
+            FREE
+          </Badge>
+          ):(
           <Badge className="glass text-white bg-gradient-secondary">
             {service.maxPrice 
               ? `₹${service.minPrice.toLocaleString()} - ₹${service.maxPrice.toLocaleString()}`
               : `From ₹${service.minPrice.toLocaleString()}`
             }
           </Badge>
+          )
+          }
         </div>
 
         {/* Category & Experience */}

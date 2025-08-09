@@ -433,21 +433,36 @@ export default function ProductDetailPage() {
                   {product.seasonality !== 'NONE' && (
                     <Badge variant="outline" className="text-xs">{getSeasonalityText(product.seasonality)}</Badge>
                   )}
-                  {product.originalPrice && product.price && (
-                    <Badge className="bg-red-500 text-white text-xs">
-                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                  {/* Show FREE badge if price is 0, otherwise show discount badge */}
+                  {product.price === 0 ? (
+                    <Badge className="bg-green-500 text-white text-xs">
+                      FREE
                     </Badge>
+                  ) : (
+                    product.originalPrice && product.price && (
+                      <Badge className="bg-red-500 text-white text-xs">
+                        {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                      </Badge>
+                    )
                   )}
                 </div>
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-4 leading-tight">{product.title}</h1>
                 
                 {/* Price - Responsive */}
                 <div className="flex items-center space-x-3 mb-4">
-                  {product.price && (
-                    <span className="text-2xl sm:text-3xl font-bold text-primary">
-                      {formatCurrency(product.price)}
+                  {/* Show FREE if price is 0, otherwise show regular price */}
+                  {product.price === 0 ? (
+                    <span className="text-2xl sm:text-3xl font-bold text-green-600">
+                      FREE
                     </span>
+                  ) : (
+                    product.price && (
+                      <span className="text-2xl sm:text-3xl font-bold text-primary">
+                        {formatCurrency(product.price)}
+                      </span>
+                    )
                   )}
+                  {/* Strike through original price if it exists */}
                   {product.originalPrice && (
                     <span className="text-lg sm:text-xl text-muted-foreground line-through">
                       {formatCurrency(product.originalPrice)}

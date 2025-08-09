@@ -33,11 +33,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useSearch } from '@/hooks/useSearch'
 
-
 interface MainLayoutProps {
   children: ReactNode
 }
-
 
 export default function MainLayout({ children }: MainLayoutProps) {
   const { isAuthenticated, user } = useAuth()
@@ -46,8 +44,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const searchContainerRef = useRef<HTMLDivElement>(null)
+  const [isDesktopSearchFocused, setIsDesktopSearchFocused] = useState(false)
+  const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false)
+  const desktopSearchContainerRef = useRef<HTMLDivElement>(null)
+  const mobileSearchContainerRef = useRef<HTMLDivElement>(null)
 
   const { search, results, loading, error } = useSearch()
 
@@ -61,22 +61,28 @@ export default function MainLayout({ children }: MainLayoutProps) {
     e.preventDefault()
     if (searchQuery.trim().length > 0) {
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`)
-      setIsSearchFocused(false)
+      setIsDesktopSearchFocused(false)
+      setIsMobileSearchFocused(false)
       setIsMobileMenuOpen(false) // Close mobile menu if open
     }
   }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsSearchFocused(false)
+      // Handle desktop search
+      if (desktopSearchContainerRef.current && !desktopSearchContainerRef.current.contains(event.target as Node)) {
+        setIsDesktopSearchFocused(false)
+      }
+      // Handle mobile search
+      if (mobileSearchContainerRef.current && !mobileSearchContainerRef.current.contains(event.target as Node)) {
+        setIsMobileSearchFocused(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [searchContainerRef])
+  }, [])
 
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' })
@@ -95,7 +101,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
     ? [{ href: `/user/${user?.id}`, label: 'My Listings', icon: Package }]
     : []
 
-  const showDropdown = isSearchFocused && searchQuery.length > 1
+  const showDesktopDropdown = isDesktopSearchFocused && searchQuery.length > 1
+  const showMobileDropdown = isMobileSearchFocused && searchQuery.length > 1
   const hasResults = results && results.total > 0
 
   return (
@@ -119,7 +126,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
             {/* Desktop Search Bar */}
             <div
-              ref={searchContainerRef}
+              ref={desktopSearchContainerRef}
               className="hidden md:flex flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8 relative"
             >
               <form onSubmit={handleSearchSubmit} className="w-full">
@@ -130,15 +137,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     placeholder="Search products, services..."
                     value={searchQuery}
                     onChange={handleSearchChange}
-                    onFocus={() => setIsSearchFocused(true)}
+                    onFocus={() => setIsDesktopSearchFocused(true)}
                     className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
                     autoComplete="off"
                   />
                 </div>
               </form>
 
-              {/* Search dropdown */}
-              {showDropdown && (
+              {/* Desktop Search dropdown */}
+              {showDesktopDropdown && (
                 <div className="absolute top-full mt-2 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
                   {loading && (
                     <div className="flex items-center justify-center p-2 text-muted-foreground">
@@ -154,7 +161,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           {results.products.length > 0 && (
                             <Link
                               href={`/products?search=${encodeURIComponent(searchQuery)}`}
-                              onClick={() => setIsSearchFocused(false)}
+                              onClick={() => setIsDesktopSearchFocused(false)}
                               className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                             >
                               <ShoppingBag className="mr-3 h-4 w-4 text-primary" />{' '}
@@ -167,7 +174,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           {results.services.length > 0 && (
                             <Link
                               href={`/services?search=${encodeURIComponent(searchQuery)}`}
-                              onClick={() => setIsSearchFocused(false)}
+                              onClick={() => setIsDesktopSearchFocused(false)}
                               className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                             >
                               <Briefcase className="mr-3 h-4 w-4 text-primary" />{' '}
@@ -180,7 +187,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           {results.demands.length > 0 && (
                             <Link
                               href={`/demand?search=${encodeURIComponent(searchQuery)}`}
-                              onClick={() => setIsSearchFocused(false)}
+                              onClick={() => setIsDesktopSearchFocused(false)}
                               className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                             >
                               <MessageSquare className="mr-3 h-4 w-4 text-primary" />{' '}
@@ -319,7 +326,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
 
         {/* Mobile Search Bar Below Navbar */}
-        <div ref={searchContainerRef} className="md:hidden container mx-auto px-4 pt-2 pb-2">
+        <div ref={mobileSearchContainerRef} className="md:hidden container mx-auto px-4 pt-2 pb-2">
           <form onSubmit={handleSearchSubmit} className="w-full relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -327,12 +334,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
               placeholder="Search products, services..."
               value={searchQuery}
               onChange={handleSearchChange}
-              onFocus={() => setIsSearchFocused(true)}
+              onFocus={() => setIsMobileSearchFocused(true)}
               className="pl-10 glass-input border-white/20 focus:border-primary/50 bg-white/10 dark:bg-white/5 text-foreground placeholder:text-muted-foreground"
               autoComplete="off"
             />
-            {/* Search Results Dropdown */}
-            {showDropdown && (
+            {/* Mobile Search Results Dropdown */}
+            {showMobileDropdown && (
               <div className="absolute top-full mt-1 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
                 {loading && (
                   <div className="flex items-center justify-center p-2 text-muted-foreground">
@@ -348,7 +355,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         {results.products.length > 0 && (
                           <Link
                             href={`/products?search=${encodeURIComponent(searchQuery)}`}
-                            onClick={() => setIsSearchFocused(false)}
+                            onClick={() => setIsMobileSearchFocused(false)}
                             className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                           >
                             <ShoppingBag className="mr-3 h-4 w-4 text-primary" />{' '}
@@ -361,7 +368,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         {results.services.length > 0 && (
                           <Link
                             href={`/services?search=${encodeURIComponent(searchQuery)}`}
-                            onClick={() => setIsSearchFocused(false)}
+                            onClick={() => setIsMobileSearchFocused(false)}
                             className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                           >
                             <Briefcase className="mr-3 h-4 w-4 text-primary" />{' '}
@@ -374,7 +381,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         {results.demands.length > 0 && (
                           <Link
                             href={`/demand?search=${encodeURIComponent(searchQuery)}`}
-                            onClick={() => setIsSearchFocused(false)}
+                            onClick={() => setIsMobileSearchFocused(false)}
                             className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                           >
                             <MessageSquare className="mr-3 h-4 w-4 text-primary" />{' '}
@@ -396,7 +403,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       </header>
 
-      {/* Mobile Navigation Sidebar (unchanged...) */}
+      {/* Mobile Navigation Sidebar */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div
@@ -469,7 +476,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Main Content */}
       <main className="flex-1">{children}</main>
 
-      {/* Footer (unchanged...) */}
+      {/* Footer */}
       <footer className="glass-card border-t border-white/10 mt-16 bg-white/10 dark:bg-white/5 backdrop-blur-xl">
         <div className="container mx-auto px-2 sm:px-4 lg:px-6 py-6 sm:py-8">
           <div className="text-center space-y-3 sm:space-y-4">

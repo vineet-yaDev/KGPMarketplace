@@ -2,9 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateSession } from '@/lib/auth-helpers'
 import { getAllServices, createService } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const services = await getAllServices()
+    // Get query parameters from the request URL
+    const { searchParams } = new URL(request.url)
+    const limitParam = searchParams.get('limit')
+    const sort = searchParams.get('sort')
+    
+    // Parse limit to number only if it exists and is valid, otherwise undefined
+    const limitNumber = limitParam ? parseInt(limitParam, 10) : undefined
+    
+    // Validate that limit is a positive number if provided
+    const validLimit = limitNumber && limitNumber > 0 ? limitNumber : undefined
+    
+    // Pass parameters to getAllServices function
+    const services = await getAllServices(validLimit, sort)
     return NextResponse.json({ services })
   } catch (error) {
     console.error('Error fetching services:', error)

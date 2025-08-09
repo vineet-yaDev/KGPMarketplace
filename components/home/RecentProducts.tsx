@@ -76,8 +76,15 @@ export default function RecentProducts({ className = "" }: RecentProductsProps) 
       
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {recentProducts.map((product) => (
-          <Link key={product.id} href={`/products/${product.id}`} className="group">
+        {recentProducts.map((product, index) => (
+          <Link 
+            key={product.id} 
+            href={`/products/${product.id}`} 
+            className={`group ${
+              // Hide products 5-8 on mobile (show only first 4)
+              index >= 4 ? 'hidden sm:block' : ''
+            }`}
+          >
             <Card className="glass-card hover-lift overflow-hidden h-full">
               <div className="aspect-video relative overflow-hidden">
                 {product.images && product.images.length > 0 ? (
@@ -94,11 +101,17 @@ export default function RecentProducts({ className = "" }: RecentProductsProps) 
                   </div>
                 )}
                 
-                {/* Discount badge - top left */}
-                {product.originalPrice && product.price && (
-                  <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 shadow-lg">
-                    {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                {/* FREE or Discount badge - top left */}
+                {product.price === 0 || !product.price ? (
+                  <Badge className="absolute top-2 left-2 bg-green-500 text-white text-xs font-semibold px-2 py-1 shadow-lg">
+                    FREE
                   </Badge>
+                ) : (
+                  product.originalPrice && product.price && (
+                    <Badge className="absolute top-2 left-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 shadow-lg">
+                      {Math.round((1 - product.price / product.originalPrice) * 100)}% OFF
+                    </Badge>
+                  )
                 )}
                 
                 {/* Green tick for invoice URL - bottom right */}
@@ -118,11 +131,19 @@ export default function RecentProducts({ className = "" }: RecentProductsProps) 
                 {/* Price and Condition */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline space-x-2">
-                    {product.price && (
-                      <span className="font-bold text-lg text-primary">
-                        {formatCurrency(product.price)}
+                    {/* Show FREE if price is 0, otherwise show regular price */}
+                    { !product.price || product.price === 0 ? (
+                      <span className="font-bold text-lg text-green-600">
+                        FREE
                       </span>
+                    ) : (
+                      product.price && (
+                        <span className="font-bold text-lg text-primary">
+                          {formatCurrency(product.price)}
+                        </span>
+                      )
                     )}
+                    {/* Strike through original price if it exists */}
                     {product.originalPrice && (
                       <span className="text-sm text-muted-foreground line-through">
                         {formatCurrency(product.originalPrice)}

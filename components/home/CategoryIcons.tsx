@@ -74,7 +74,7 @@ export default function CategoryIcons() {
       </div>
       
       {/* Fade overlay fixed to the screen's right edge */}
-      <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white dark:from-black to-transparent md:hidden"></div>
+      <div className="pointer-events-none absolute top-0 right-0 h-full w-8 bg-gradient-to-l from-white dark:from-black to-transparent md:hidden rounded-l-full"></div>
     </section>
   )
 }
