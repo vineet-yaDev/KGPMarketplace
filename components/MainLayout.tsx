@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { signIn, signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
+import Image from 'next/image'
 import {
   Search,
   User,
@@ -112,17 +113,31 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <div className="container mx-auto px-2 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
-            <Link
-              href="/"
-              className="flex items-center space-x-2 hover:opacity-80 transition-smooth flex-shrink-0"
-            >
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </div>
-              <span className="hidden sm:block text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                KGP Marketplace
-              </span>
-            </Link>
+      <Link
+        href="/"
+        className="flex items-center space-x-2 hover:opacity-80 transition-smooth flex-shrink-0"
+      >
+        {/* Mobile: Full icon only */}
+        <div className="block sm:hidden">
+          <img
+            src="/fullicon.png"
+            alt="KGP Marketplace"
+            className="h-8 w-auto" // Height constrained, width auto
+          />
+        </div>
+
+        {/* Desktop: Icon + Text */}
+        <div className="hidden sm:flex items-center space-x-2">
+          <img
+            src="/icon.png"
+            alt="KGP Marketplace Icon"
+            className="h-8 w-auto" // Height constrained, width auto
+          />
+          <span className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
+            KGP Marketplace
+          </span>
+        </div>
+      </Link>
 
             {/* Desktop Search Bar */}
             <div
