@@ -48,6 +48,7 @@ export default function ProductsContent() {
   const [selectedStatus, setSelectedStatus] = useState('')
   const [selectedSeasonality, setSelectedSeasonality] = useState('')
   const [selectedCondition, setSelectedCondition] = useState('')
+  const [selectedDiscount, setSelectedDiscount] = useState('')  // New state for discount filter
   const [maxPrice, setMaxPrice] = useState([1000000])
   const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid')
@@ -107,6 +108,7 @@ export default function ProductsContent() {
     const status = searchParams.get('status')
     const seasonality = searchParams.get('seasonality')
     const condition = searchParams.get('condition')
+    const discount = searchParams.get('discount')  // New: Get discount from URL
     const price = searchParams.get('maxPrice')
     const search = searchParams.get('search')
     const sort = searchParams.get('sort')
@@ -129,6 +131,9 @@ export default function ProductsContent() {
     if (condition && ['1', '2', '3', '4', '5'].includes(condition)) {
       setSelectedCondition(condition)
     }
+    if (discount && ['20', '30', '40', '50', '60', '70'].includes(discount)) {  // New: Set discount if valid
+      setSelectedDiscount(discount)
+    }
     if (price && !isNaN(Number(price))) {
       setMaxPrice([Number(price)])
     }
@@ -141,7 +146,7 @@ export default function ProductsContent() {
   }, [searchParams])
 
   // Update URL when filters change
-  const updateURL = (filters: FilterState) => {
+  const updateURL = (filters: FilterState & { discount?: string }) => {  // Extended to include discount
     const params = new URLSearchParams()
     
     if (filters.category) params.set('category', filters.category.toLowerCase())
@@ -150,6 +155,7 @@ export default function ProductsContent() {
     if (filters.status) params.set('status', filters.status.toLowerCase())
     if (filters.seasonality) params.set('seasonality', filters.seasonality.toLowerCase())
     if (filters.condition) params.set('condition', filters.condition)
+    if (filters.discount) params.set('discount', filters.discount)  // New: Add discount to URL
     if (filters.maxPrice && filters.maxPrice !== 1000000) params.set('maxPrice', filters.maxPrice.toString())
     if (filters.search) params.set('search', filters.search)
     if (filters.sort && filters.sort !== 'newest') params.set('sort', filters.sort)
@@ -191,6 +197,7 @@ export default function ProductsContent() {
       status: selectedStatus,
       seasonality: selectedSeasonality,
       condition: selectedCondition,
+      discount: selectedDiscount,  // New: Include discount in filters object
       maxPrice: maxPrice[0],
       search: searchQuery,
       sort: sortBy
@@ -222,6 +229,10 @@ export default function ProductsContent() {
       case 'condition':
         setSelectedCondition(filterValue)
         filters.condition = filterValue
+        break
+      case 'discount':  // New: Handle discount filter
+        setSelectedDiscount(filterValue)
+        filters.discount = filterValue
         break
       case 'maxPrice':
         setMaxPrice([value as number])
@@ -255,6 +266,7 @@ export default function ProductsContent() {
     setSelectedStatus('')
     setSelectedSeasonality('')
     setSelectedCondition('')
+    setSelectedDiscount('')  // New: Clear discount filter
     setMaxPrice([1000000])
     setSearchQuery('')
     setSortBy('newest')
@@ -273,8 +285,19 @@ export default function ProductsContent() {
     const matchesCondition = !selectedCondition || product.condition === parseInt(selectedCondition)
     const matchesPrice = !product.price || product.price <= maxPrice[0]
     
+    // New: Calculate discount and apply filter
+    const getDiscount = (p: Product) => {
+      if (!p.price || p.price === 0) return 100;
+      if (p.originalPrice && p.price) {
+        return Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100);
+      }
+      return 0;
+    };
+    
+    const matchesDiscount = !selectedDiscount || getDiscount(product) > parseInt(selectedDiscount);
+    
     return matchesSearch && matchesCategory && matchesHall && matchesType && 
-           matchesStatus && matchesSeasonality && matchesCondition && matchesPrice
+           matchesStatus && matchesSeasonality && matchesCondition && matchesPrice && matchesDiscount;
   })
 
   const sortedProducts = [...filteredProducts].sort((a: Product, b: Product) => {
@@ -306,7 +329,7 @@ export default function ProductsContent() {
 
   const hasActiveFilters = selectedCategory || selectedHall || selectedType || 
                           selectedStatus || selectedSeasonality || selectedCondition || 
-                          maxPrice[0] < 1000000 || searchQuery
+                          selectedDiscount || maxPrice[0] < 1000000 || searchQuery  // New: Include selectedDiscount
 
   if (loading) {
     return (
@@ -427,6 +450,22 @@ export default function ProductsContent() {
                   onValueChange={(value: string) => handleFilterChange('seasonality', value)}
                   options={SEASONALITIES}
                   placeholder="Select seasonality"
+                />
+
+                {/* New: Discount Filter */}
+                <FilterDropdown
+                  label="Discount"
+                  value={selectedDiscount}
+                  onValueChange={(value: string) => handleFilterChange('discount', value)}
+                  options={[
+                    { value: '20', label: '> 20%' },
+                    { value: '30', label: '> 30%' },
+                    { value: '40', label: '> 40%' },
+                    { value: '50', label: '> 50%' },
+                    { value: '60', label: '> 60%' },
+                    { value: '70', label: '> 70%' },
+                  ]}
+                  placeholder="Select discount"
                 />
 
                 <Separator className="my-6" />
@@ -591,6 +630,15 @@ export default function ProductsContent() {
                           <X 
                             className="w-3 h-3 cursor-pointer hover:text-destructive" 
                             onClick={() => handleFilterChange('seasonality', '')}
+                          />
+                        </Badge>
+                      )}
+                      {selectedDiscount && (  // New: Add badge for discount filter
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                         {selectedDiscount}%
+                          <X 
+                            className="w-3 h-3 cursor-pointer hover:text-destructive" 
+                            onClick={() => handleFilterChange('discount', '')}
                           />
                         </Badge>
                       )}
@@ -976,6 +1024,23 @@ export default function ProductsContent() {
                 onValueChange={(value: string) => handleFilterChange('seasonality', value, true)}
                 options={SEASONALITIES}
                 placeholder="Select seasonality"
+                isMobile={true}
+              />
+
+              {/* New: Discount Filter for Mobile */}
+              <FilterDropdown
+                label="Discount"
+                value={selectedDiscount}
+                onValueChange={(value: string) => handleFilterChange('discount', value, true)}
+                options={[
+                  { value: '20', label: '> 20%' },
+                  { value: '30', label: '> 30%' },
+                  { value: '40', label: '> 40%' },
+                  { value: '50', label: '> 50%' },
+                  { value: '60', label: '> 60%' },
+                  { value: '70', label: '> 70%' },
+                ]}
+                placeholder="Select discount"
                 isMobile={true}
               />
 

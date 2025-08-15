@@ -33,7 +33,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (wasAuthenticated) {
         console.log('Session expired, redirecting to Google sign in')
         localStorage.removeItem('was-authenticated')
-        // Redirect directly to Google sign-in instead of /login page
         signIn('google', { callbackUrl: '/' })
       }
     } else if (status === 'authenticated') {
@@ -41,7 +40,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [status, router])
 
-  // Updated signOutUser to redirect to home page
   const signOutUser = () => {
     localStorage.removeItem('was-authenticated')
     signOut({ callbackUrl: '/' })
@@ -51,6 +49,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     session,
     status,
     isAuthenticated: status === 'authenticated',
+    isLoading: status === 'loading', // Add this for better state management
     user: session?.user || null,
     userEmail: session?.user?.email || null,
     userName: session?.user?.name || null,
@@ -64,6 +63,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     </AuthContext.Provider>
   )
 }
+
 
 export const useAuth = () => {
   const context = useContext(AuthContext)

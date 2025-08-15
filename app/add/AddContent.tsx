@@ -15,6 +15,7 @@ import { useSession } from 'next-auth/react'
 import { CldUploadWidget } from 'next-cloudinary'
 import Image from 'next/image'
 import MainLayout from '@/components/MainLayout'
+import SmartPriceCalculator from '@/components/SmartPriceCalculator' // Import the calculator
 
 // Import from constants and types
 import { 
@@ -91,6 +92,10 @@ export default function AddContent() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [uploadError, setUploadError] = useState<string>('')
+  
+  // Smart price calculator state
+  const [priceCalculatorErrors, setPriceCalculatorErrors] = useState<string[]>([])
+  const [calculatorFieldErrors, setCalculatorFieldErrors] = useState<Set<string>>(new Set())
 
   // Scroll position management
   const scrollPositionRef = useRef<number>(0)
@@ -136,6 +141,35 @@ export default function AddContent() {
     serviceCategory: '',
     mobileNumber: ''
   })
+
+  // Smart Price Calculator handlers
+  const handlePriceCalculated = useCallback((calculatedPrice: string) => {
+    setProductForm(prev => ({
+      ...prev,
+      price: calculatedPrice
+    }))
+    setPriceCalculatorErrors([])
+    setCalculatorFieldErrors(new Set())
+  }, [])
+
+  const handleCalculatorValidationErrors = useCallback((errors: string[]) => {
+    setPriceCalculatorErrors(errors)
+    
+    // Set field-specific errors for red highlighting
+    const fieldErrors = new Set<string>()
+    errors.forEach(error => {
+      if (error.includes('Original Price')) fieldErrors.add('originalPrice')
+      if (error.includes('Age in Months')) fieldErrors.add('ageInMonths')
+      if (error.includes('Category')) fieldErrors.add('category')
+      if (error.includes('Condition')) fieldErrors.add('condition')
+    })
+    setCalculatorFieldErrors(fieldErrors)
+  }, [])
+
+  // Helper function to check if field has calculator error
+  const hasCalculatorError = (fieldName: string) => {
+    return calculatorFieldErrors.has(fieldName)
+  }
 
   // Scroll management functions
   const preserveScrollPosition = useCallback(() => {
@@ -626,6 +660,21 @@ export default function AddContent() {
             </Alert>
           )}
 
+          {/* Price Calculator Errors */}
+          {priceCalculatorErrors.length > 0 && (
+            <Alert className="mb-3 sm:mb-8 border border-red-300 bg-red-50 dark:bg-red-950/20 shadow-lg rounded-lg mx-1 sm:mx-0">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-red-800 dark:text-red-200 font-medium text-sm">
+                <div className="font-semibold mb-2">Please fix the following to calculate smart price:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  {priceCalculatorErrors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Main Form Card - Mobile Optimized */}
           <Card className="glass-card shadow-xl border border-white/20 mx-0 sm:mx-0">
             <CardContent className="p-2 sm:p-6 lg:p-8">
@@ -701,7 +750,7 @@ export default function AddContent() {
                                 value={productForm.category} 
                                 onValueChange={(value) => setProductForm({...productForm, category: value as ProductCategory})}
                               >
-                                <SelectTrigger className={`glass border border-white/30 h-9 sm:h-12 ${errors.category ? 'border-red-500' : 'focus:border-primary'}`}>
+                                <SelectTrigger className={`glass border border-white/30 h-9 sm:h-12 ${errors.category || hasCalculatorError('category') ? 'border-red-500' : 'focus:border-primary'}`}>
                                   <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
                                 <SelectContent className="glass border border-white/30">
@@ -735,6 +784,18 @@ export default function AddContent() {
                           <CardTitle className="text-base sm:text-xl lg:text-2xl font-bold">Pricing & Condition</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 sm:space-y-8 pt-1">
+                          {/* Smart Price Calculator */}
+                          <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+                            <SmartPriceCalculator
+                              originalPrice={productForm.originalPrice}
+                              ageInMonths={productForm.ageInMonths}
+                              category={productForm.category}
+                              condition={productForm.condition}
+                              onPriceCalculated={handlePriceCalculated}
+                              onValidationErrors={handleCalculatorValidationErrors}
+                            />
+                          </div>
+
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
                             <div className="space-y-1 sm:space-y-3">
                               <Label htmlFor="product-price" className="text-sm font-semibold">Selling Price (₹) *</Label>
@@ -757,10 +818,10 @@ export default function AddContent() {
                                 placeholder="e.g. 70000"
                                 value={productForm.originalPrice}
                                 onChange={(e) => setProductForm({...productForm, originalPrice: e.target.value})}
-                                className="glass border border-white/30 h-9 sm:h-12 text-sm focus:border-primary transition-colors"
+                                className={`glass border border-white/30 h-9 sm:h-12 text-sm ${hasCalculatorError('originalPrice') ? 'border-red-500' : 'focus:border-primary'} transition-colors`}
                                 min="0"
                               />
-                              <p className="text-xs text-muted-foreground">Optional: Helps buyers see the value</p>
+                              <p className="text-xs text-muted-foreground">For smart price calculation & buyer value reference</p>
                             </div>
                             <div className="space-y-1 sm:space-y-3">
                               <Label htmlFor="product-type" className="text-sm font-semibold">Product Type</Label>
@@ -787,7 +848,7 @@ export default function AddContent() {
                                 value={productForm.condition} 
                                 onValueChange={(value) => setProductForm({...productForm, condition: value})}
                               >
-                                <SelectTrigger className="glass border border-white/30 h-9 sm:h-12 focus:border-primary">
+                                <SelectTrigger className={`glass border border-white/30 h-9 sm:h-12 ${hasCalculatorError('condition') ? 'border-red-500' : 'focus:border-primary'}`}>
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="glass border border-white/30">
@@ -805,9 +866,10 @@ export default function AddContent() {
                                 placeholder="e.g. 12"
                                 value={productForm.ageInMonths}
                                 onChange={(e) => setProductForm({...productForm, ageInMonths: e.target.value})}
-                                className="glass border border-white/30 h-9 sm:h-12 text-sm focus:border-primary transition-colors"
+                                className={`glass border border-white/30 h-9 sm:h-12 text-sm ${hasCalculatorError('ageInMonths') ? 'border-red-500' : 'focus:border-primary'} transition-colors`}
                                 min="0"
                               />
+                              <p className="text-xs text-muted-foreground">Required for smart price calculation</p>
                             </div>
                             <div className="space-y-1 sm:space-y-3">
                               <Label htmlFor="product-seasonality" className="text-sm font-semibold">Tags</Label>
@@ -829,7 +891,8 @@ export default function AddContent() {
                         </CardContent>
                       </Card>
 
-                      {/* Product Images - Mobile Optimized */}
+                      {/* Rest of the form components remain the same */}
+                      {/* Product Images */}
                       <Card className="glass-card border border-white/30 shadow-lg">
                         <CardHeader className="pb-2 sm:pb-6">
                           <CardTitle className="flex items-center space-x-2 text-base sm:text-xl lg:text-2xl font-bold">
@@ -1044,6 +1107,7 @@ export default function AddContent() {
                     </form>
                   </TabsContent>
 
+                  {/* Service and Demand forms remain unchanged */}
                   {/* Service Form - Mobile Optimized */}
                   <TabsContent value="service" className="mt-3 sm:mt-8">
                     <form onSubmit={handleServiceSubmit} className="space-y-3 sm:space-y-8 lg:space-y-10">
