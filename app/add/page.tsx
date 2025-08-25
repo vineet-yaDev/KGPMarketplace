@@ -6,7 +6,7 @@ import AddContent from './AddContent';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AddPage() {
-  const { isAuthenticated, status } = useAuth();
+  const { status } = useAuth();
   const router = useRouter();
 
   useEffect(() => {

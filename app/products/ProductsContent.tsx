@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -42,6 +42,7 @@ export default function ProductsContent() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedHall, setSelectedHall] = useState('')
   const [selectedType, setSelectedType] = useState('')
@@ -138,7 +139,8 @@ export default function ProductsContent() {
       setMaxPrice([Number(price)])
     }
     if (search) {
-      setSearchQuery(search)
+  setSearchQuery(search)
+  setSearchInput(search)
     }
     if (sort) {
       setSortBy(sort)
@@ -146,7 +148,7 @@ export default function ProductsContent() {
   }, [searchParams])
 
   // Update URL when filters change
-  const updateURL = (filters: FilterState & { discount?: string }) => {  // Extended to include discount
+  const updateURL = useCallback((filters: FilterState & { discount?: string }) => {  // Extended to include discount
     const params = new URLSearchParams()
     
     if (filters.category) params.set('category', filters.category.toLowerCase())
@@ -164,7 +166,7 @@ export default function ProductsContent() {
     const newURL = queryString ? `/products?${queryString}` : '/products'
     
     router.push(newURL, { scroll: false })
-  }
+  }, [router])
 
   // Fetch products from API
   useEffect(() => {
@@ -189,7 +191,7 @@ export default function ProductsContent() {
     }
   }
 
-  const handleFilterChange = (filterType: string, value: string | number, isMobile: boolean = false) => {
+  const handleFilterChange = useCallback((filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters = {
       category: selectedCategory,
       hall: selectedHall,
@@ -257,7 +259,17 @@ export default function ProductsContent() {
     } else {
       updateURL(filters)
     }
-  }
+  }, [selectedCategory, selectedHall, selectedType, selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, maxPrice, searchQuery, sortBy, updateURL])
+
+  // Debounce search input changes (700ms)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      // Only trigger search update when value actually changes (including empty to clear)
+      handleFilterChange('search', searchInput)
+    }, 700)
+
+    return () => clearTimeout(id)
+  }, [searchInput, handleFilterChange])
 
   const clearFilters = () => {
     setSelectedCategory('')
@@ -268,7 +280,8 @@ export default function ProductsContent() {
     setSelectedCondition('')
     setSelectedDiscount('')  // New: Clear discount filter
     setMaxPrice([1000000])
-    setSearchQuery('')
+  setSearchQuery('')
+  setSearchInput('')
     setSortBy('newest')
     router.push('/products')
   }
@@ -503,8 +516,8 @@ export default function ProductsContent() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search products..."
-                      value={searchQuery}
-                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
                       className="pl-10 glass border-white/20"
                     />
                   </div>

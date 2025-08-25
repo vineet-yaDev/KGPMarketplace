@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -49,6 +49,7 @@ export default function ServicesContent() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedHall, setSelectedHall] = useState('');
   const [selectedExperienceRange, setSelectedExperienceRange] = useState('');
@@ -95,8 +96,9 @@ export default function ServicesContent() {
       setMaxPrice([Number(maxPriceParam)]);
     }
     if (searchParam) {
-      setSearchQuery(searchParam);
-      setUseFuzzySearch(true);
+  setSearchQuery(searchParam);
+  setSearchInput(searchParam);
+  setUseFuzzySearch(true);
     }
     if (sort) {
       setSortBy(sort);
@@ -147,7 +149,7 @@ export default function ServicesContent() {
   }, [searchQuery]);
 
   // Update URL when filters change (desktop)
-  const updateURL = (filters: FilterState) => {
+  const updateURL = useCallback((filters: FilterState) => {
     const params = new URLSearchParams();
     if (filters.category) params.set('category', filters.category.toLowerCase());
     if (filters.hall) params.set('hall', filters.hall.toLowerCase());
@@ -160,9 +162,9 @@ export default function ServicesContent() {
     const queryString = params.toString();
     const newURL = queryString ? `/services?${queryString}` : '/services';
     router.push(newURL, { scroll: false });
-  };
+  }, [router]);
 
-  const handleFilterChange = (filterType: string, value: string | number, isMobile: boolean = false) => {
+  const handleFilterChange = useCallback((filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters: FilterState = {
       category: selectedCategory,
       hall: selectedHall,
@@ -214,7 +216,7 @@ export default function ServicesContent() {
     } else {
       updateURL(filters);
     }
-  };
+  }, [selectedCategory, selectedHall, selectedExperienceRange, minPrice, maxPrice, searchQuery, sortBy, updateURL]);
 
   const clearFilters = () => {
     setSelectedCategory('');
@@ -223,9 +225,21 @@ export default function ServicesContent() {
     setMinPrice([0]);
     setMaxPrice([50000]);
     setSearchQuery('');
+    setSearchInput('');
     setSortBy('newest');
     router.push('/services');
   };
+
+  // Debounce search input changes (700ms)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      // update searchQuery which controls filtering / fuzzy search mode
+      handleFilterChange('search', searchInput);
+      if (searchInput.trim()) setUseFuzzySearch(true);
+    }, 700);
+
+    return () => clearTimeout(id);
+  }, [searchInput, handleFilterChange]);
 
   // For fuzzy search, if active use fuzzyResults; otherwise filter locally.
   const filteredServices = useFuzzySearch
@@ -426,8 +440,8 @@ export default function ServicesContent() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search services..."
-                      value={searchQuery}
-                      onChange={(e) => handleFilterChange('search', e.target.value)}
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
                       className="pl-10 glass border-white/20"
                     />
                   </div>

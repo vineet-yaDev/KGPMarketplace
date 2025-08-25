@@ -62,7 +62,7 @@ export default function DemandsPage() {
         };
         fuzzySearch(searchQuery, filters);
       }
-    }, 300);
+    }, 700);
     return () => clearTimeout(handler);
   }, [searchQuery, selectedCategory, useFuzzySearch, fuzzySearch]);
 

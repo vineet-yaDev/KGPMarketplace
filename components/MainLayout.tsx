@@ -119,18 +119,22 @@ export default function MainLayout({ children }: MainLayoutProps) {
       >
         {/* Mobile: Full icon only */}
         <div className="block sm:hidden">
-          <img
+          <Image
             src="/fullicon.png"
             alt="KGP Marketplace"
+            width={120}
+            height={32}
             className="h-8 w-auto" // Height constrained, width auto
           />
         </div>
 
         {/* Desktop: Icon + Text */}
         <div className="hidden sm:flex items-center space-x-2">
-          <img
+          <Image
             src="/icon.png"
             alt="KGP Marketplace Icon"
+            width={32}
+            height={32}
             className="h-8 w-auto" // Height constrained, width auto
           />
           <span className="text-lg sm:text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">

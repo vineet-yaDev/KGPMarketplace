@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Calculator, AlertCircle, CheckCircle } from 'lucide-react'
+import { Calculator, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -172,7 +172,6 @@ export const SmartPriceCalculator: React.FC<SmartPriceCalculatorProps> = ({
       
       // Create calculation details
       const conditionLabel = CONDITION_LABELS[conditionValue] || 'Unknown'
-      const depreciationRates = getDepreciationRates(category)
       const conditionFactor = getConditionFactor(conditionValue)
       
       const details = `Based on: ₹${price.toLocaleString()} original price, ${months} months old (${years.toFixed(1)} years), ${category.toLowerCase()} category, ${conditionLabel.toLowerCase()} condition (${(conditionFactor * 100).toFixed(0)}% factor)`

@@ -13,7 +13,7 @@ export interface SearchResults {
   total: number
 }
 
-export function useSearch(debounceDelay: number = 300) {
+export function useSearch(debounceDelay: number = 700) {
   const [query, setQuery] = useState<string>('')
   const [results, setResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
