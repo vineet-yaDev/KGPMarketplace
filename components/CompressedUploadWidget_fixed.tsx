@@ -269,32 +269,9 @@ export default function CompressedUploadWidget({
     
     // Add a small delay to ensure the onOpen callback has been processed
     setTimeout(() => {
-      if (fileInputRef.current) {
-        const fileInput = fileInputRef.current
-        
-        // Set up a listener to detect when the file dialog closes without selection
-        const handleFocus = () => {
-          console.log('File dialog closed, checking for selection...')
-          // Small delay to allow the change event to fire first if files were selected
-          setTimeout(() => {
-            // If no files were selected, the onChange won't have fired, so we need to call onClose
-            if (!fileInput.files || fileInput.files.length === 0) {
-              console.log('No files selected, calling onClose...')
-              onClose?.()
-            }
-          }, 100)
-          
-          // Remove the event listener after use
-          window.removeEventListener('focus', handleFocus)
-        }
-        
-        // Listen for window focus which indicates the file dialog was closed
-        window.addEventListener('focus', handleFocus)
-        
-        fileInput.click()
-      }
+      fileInputRef.current?.click()
     }, 50)
-  }, [compressionProgress.isCompressing, onOpen, onClose])
+  }, [compressionProgress.isCompressing, onOpen])
 
   // If compression is not supported, fall back to original CldUploadWidget
   if (!isCompressionSupported()) {
