@@ -313,52 +313,6 @@ export default function ClientProductDetailPage() {
             </Button>
 
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* Share Button with Dropdown */}
-              <div className="relative share-dropdown">
-                <Button
-                  variant="outline"
-                  onClick={handleShare}
-                  className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-                  size="sm"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500" />
-                      <span className="hidden sm:inline text-green-500">Copied!</span>
-                      <span className="sm:hidden text-green-500">✓</span>
-                    </>
-                  ) : (
-                    <>
-                      <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Share</span>
-                      <span className="sm:hidden">Share</span>
-                    </>
-                  )}
-                </Button>
-
-                {/* Share Options Dropdown */}
-                {showShareOptions && (
-                  <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-lg shadow-lg border border-white/20 z-50">
-                    <div className="p-2 space-y-1">
-                      <button
-                        onClick={handleCopyLink}
-                        className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors"
-                      >
-                        <Copy className="w-4 h-4 mr-3" />
-                        Copy Link
-                      </button>
-                      <button
-                        onClick={handleWhatsAppShare}
-                        className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors text-green-400"
-                      >
-                        <MessageSquareCode className="w-4 h-4 mr-3" />
-                        Share on WhatsApp
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Owner Action Buttons - Responsive */}
               {isOwner && (
                 <div className="flex items-center gap-1 sm:gap-2">
@@ -434,6 +388,55 @@ export default function ClientProductDetailPage() {
                   </AlertDialog>
                 </div>
               )}
+
+              <div className="relative share-dropdown">
+  <Button
+    variant="outline"
+    onClick={handleShare}
+    className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+    size="sm"
+  >
+    {copied ? (
+      <>
+        <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500" />
+        {/* Hide text on mobile for owners, show for others */}
+        <span className={`text-green-500 ${isOwner ? 'hidden sm:inline' : 'inline'}`}>
+          Copied!
+        </span>
+      </>
+    ) : (
+      <>
+        <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+        {/* Hide text on mobile for owners, show for others */}
+        <span className={`${isOwner ? 'hidden sm:inline ml-1 sm:ml-2' : 'ml-1 sm:ml-2'}`}>
+          Share
+        </span>
+      </>
+    )}
+  </Button>
+
+  {/* Share Options Dropdown */}
+  {showShareOptions && (
+    <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-lg shadow-lg border border-white/20 z-50">
+      <div className="p-2 space-y-1">
+        <button
+          onClick={handleCopyLink}
+          className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors"
+        >
+          <Copy className="w-4 h-4 mr-3" />
+          Copy Link
+        </button>
+        <button
+          onClick={handleWhatsAppShare}
+          className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors text-green-400"
+        >
+          <MessageSquareCode className="w-4 h-4 mr-3" />
+          Share on WhatsApp
+        </button>
+      </div>
+    </div>
+  )}
+</div>
             </div>
           </div>
 

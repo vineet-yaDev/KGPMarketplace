@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useSession } from 'next-auth/react'
-import { CldUploadWidget } from 'next-cloudinary'
+import CompressedUploadWidget from '@/components/CompressedUploadWidget'
 import Image from 'next/image'
 import MainLayout from '@/components/MainLayout'
 import SmartPriceCalculator from '@/components/SmartPriceCalculator' // Import the calculator
@@ -924,7 +924,7 @@ export default function AddContent() {
                             ))}
                             
                             {productForm.images.length < VALIDATION.MAX_IMAGES_PER_LISTING && (
-                              <CldUploadWidget
+                              <CompressedUploadWidget
                                 uploadPreset="Marketplace"
                                 onSuccess={handleProductImageUpload}
                                 onError={handleProductImageUploadError}
@@ -936,6 +936,14 @@ export default function AddContent() {
                                 }}
                                 onOpen={preserveScrollPosition}
                                 onClose={restoreScrollPosition}
+                                cloudName={cloudName}
+                                compressionOptions={{
+                                  maxSizeBytes: 1024 * 1024, // 1MB
+                                  quality: 0.85,
+                                  maxWidth: 1920,
+                                  maxHeight: 1080,
+                                  outputFormat: 'jpeg'
+                                }}
                               >
                                 {({ open }) => {
                                   if (!cloudName) {
@@ -957,11 +965,11 @@ export default function AddContent() {
                                     </div>
                                   )
                                 }}
-                              </CldUploadWidget>
+                              </CompressedUploadWidget>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Upload up to {VALIDATION.MAX_IMAGES_PER_LISTING} images (JPG, PNG, GIF, WebP). Max 10MB per image. First image will be the main display image.
+                            Upload up to {VALIDATION.MAX_IMAGES_PER_LISTING} images (JPG, PNG, GIF, WebP). Images will be automatically compressed to under 1MB while maintaining quality. First image will be the main display image.
                           </p>
                         </CardContent>
                       </Card>
@@ -998,7 +1006,7 @@ export default function AddContent() {
                             )}
                             
                             {!productForm.invoiceImageUrl && (
-                              <CldUploadWidget
+                              <CompressedUploadWidget
                                 uploadPreset="Marketplace"
                                 onSuccess={handleInvoiceImageUpload}
                                 onError={handleInvoiceImageUploadError}
@@ -1010,6 +1018,14 @@ export default function AddContent() {
                                 }}
                                 onOpen={preserveScrollPosition}
                                 onClose={restoreScrollPosition}
+                                cloudName={cloudName}
+                                compressionOptions={{
+                                  maxSizeBytes: 1024 * 1024, // 1MB
+                                  quality: 0.9, // Higher quality for documents
+                                  maxWidth: 2048,
+                                  maxHeight: 2048,
+                                  outputFormat: 'jpeg'
+                                }}
                               >
                                 {({ open }) => {
                                   if (!cloudName) {
@@ -1031,11 +1047,11 @@ export default function AddContent() {
                                     </div>
                                   )
                                 }}
-                              </CldUploadWidget>
+                              </CompressedUploadWidget>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Upload your purchase invoice for authenticity verification. Only one image allowed (JPG, PNG, GIF, WebP). Max 10MB.
+                            Upload your purchase invoice for authenticity verification. Only one image allowed (JPG, PNG, GIF, WebP). Images will be automatically compressed to under 1MB while maintaining quality.
                           </p>
                         </CardContent>
                       </Card>
@@ -1249,7 +1265,7 @@ export default function AddContent() {
                             ))}
                             
                             {serviceForm.images.length < VALIDATION.MAX_IMAGES_PER_LISTING && (
-                              <CldUploadWidget
+                              <CompressedUploadWidget
                                 uploadPreset="Marketplace"
                                 onSuccess={handleServiceImageUpload}
                                 onError={handleServiceImageUploadError}
@@ -1261,6 +1277,14 @@ export default function AddContent() {
                                 }}
                                 onOpen={preserveScrollPosition}
                                 onClose={restoreScrollPosition}
+                                cloudName={cloudName}
+                                compressionOptions={{
+                                  maxSizeBytes: 1024 * 1024, // 1MB
+                                  quality: 0.85,
+                                  maxWidth: 1920,
+                                  maxHeight: 1080,
+                                  outputFormat: 'jpeg'
+                                }}
                               >
                                 {({ open }) => {
                                   if (!cloudName) {
@@ -1282,11 +1306,11 @@ export default function AddContent() {
                                     </div>
                                   )
                                 }}
-                              </CldUploadWidget>
+                              </CompressedUploadWidget>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Upload images of your work, certificates, or anything that showcases your service. Upload up to {VALIDATION.MAX_IMAGES_PER_LISTING} images.
+                            Upload images of your work, certificates, or anything that showcases your service. Upload up to {VALIDATION.MAX_IMAGES_PER_LISTING} images. Images will be automatically compressed to under 1MB while maintaining quality.
                           </p>
                         </CardContent>
                       </Card>
