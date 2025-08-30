@@ -393,7 +393,7 @@ export default function ClientProductDetailPage() {
   <Button
     variant="outline"
     onClick={handleShare}
-    className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+    className="glass btn-gradient-primary border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
     size="sm"
   >
     {copied ? (
