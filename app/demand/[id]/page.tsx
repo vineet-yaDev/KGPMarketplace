@@ -122,7 +122,7 @@ export default function DemandDetailPage() {
               size="sm"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to Demands</span>
+              <span className="hidden sm:inline">Back</span>
               <span className="sm:hidden">Back</span>
             </Button>
 

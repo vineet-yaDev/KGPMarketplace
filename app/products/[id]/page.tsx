@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, MapPin, Calendar, ChevronLeft, ChevronRight, Edit, Trash2, CheckCircle, AlertTriangle, Package, Maximize2, ZoomIn, ZoomOut, X, ExternalLink, FileText, Clock, MessageSquareCode } from 'lucide-react'
+import { ArrowLeft, MapPin, Calendar, ChevronLeft, ChevronRight, Edit, Trash2, CheckCircle, AlertTriangle, Package, Maximize2, ZoomIn, ZoomOut, X, ExternalLink, FileText, Clock, MessageSquareCode, Share2, Copy, Check } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -32,6 +32,10 @@ export default function ProductDetailPage() {
   const [zoom, setZoom] = useState(1)
   const [showInvoice, setShowInvoice] = useState(false)
   const invoiceModalRef = useRef<HTMLDivElement>(null)
+
+  // Share functionality states
+  const [copied, setCopied] = useState(false)
+  const [showShareOptions, setShowShareOptions] = useState(false)
 
   // Check if current user owns this product
   const isOwner = session?.user?.email === product?.owner?.email
@@ -98,6 +102,65 @@ export default function ProductDetailPage() {
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
   }, [isFullscreen, showInvoice])
+
+  // Update document metadata for better sharing
+  useEffect(() => {
+    if (product) {
+      const title = `${product.title} - KGP Marketplace`
+      const description = `${product.description || product.title} - ${product.price === 0 ? 'FREE' : product.price ? formatCurrency(product.price) : 'Price on request'} on KGP Marketplace`
+      const imageUrl = product.images?.[0] || ''
+      const absoluteUrl = typeof window !== 'undefined' ? window.location.href : `https://kgpmarketplace.in/products/${params.id}`
+      
+      // Ensure image URL is absolute
+      const absoluteImageUrl = imageUrl.startsWith('http') ? imageUrl : `https://kgpmarketplace.in${imageUrl}`
+
+      // Update document title
+      document.title = title
+
+      // Update meta description
+      let metaDescription = document.querySelector('meta[name="description"]')
+      if (!metaDescription) {
+        metaDescription = document.createElement('meta')
+        metaDescription.setAttribute('name', 'description')
+        document.head.appendChild(metaDescription)
+      }
+      metaDescription.setAttribute('content', description)
+
+      // Update Open Graph meta tags for better WhatsApp previews
+      const ogTags = [
+        { property: 'og:title', content: title },
+        { property: 'og:description', content: description },
+        { property: 'og:image', content: absoluteImageUrl },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:url', content: absoluteUrl },
+        { property: 'og:type', content: 'product' },
+        { property: 'og:site_name', content: 'KGP Marketplace' },
+        { property: 'product:price:amount', content: product.price?.toString() || '0' },
+        { property: 'product:price:currency', content: 'INR' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: title },
+        { name: 'twitter:description', content: description },
+        { name: 'twitter:image', content: absoluteImageUrl },
+        { name: 'twitter:site', content: '@kgpmarketplace' }
+      ]
+
+      ogTags.forEach(tag => {
+        const selector = tag.property ? `meta[property="${tag.property}"]` : `meta[name="${tag.name}"]`
+        let metaTag = document.querySelector(selector)
+        if (!metaTag) {
+          metaTag = document.createElement('meta')
+          if (tag.property) {
+            metaTag.setAttribute('property', tag.property)
+          } else {
+            metaTag.setAttribute('name', tag.name!)
+          }
+          document.head.appendChild(metaTag)
+        }
+        metaTag.setAttribute('content', tag.content)
+      })
+    }
+  }, [product, params.id])
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-IN', {
@@ -200,6 +263,65 @@ export default function ProductDetailPage() {
     }
   }
 
+  // Share functionality
+  const getShareUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.href
+    }
+    return `https://kgpmarketplace.in/products/${params.id}`
+  }
+
+  const getShareData = () => {
+    const url = getShareUrl()
+    const title = product?.title || 'Check out this product'
+    const text = `${title} - ${product?.price === 0 ? 'FREE' : product?.price ? formatCurrency(product.price) : 'Price on request'} on KGP Marketplace`
+    
+    return { title, text, url }
+  }
+
+  const handleShare = async () => {
+    if (!product) return
+
+    // Always show the custom dropdown for consistent experience
+    setShowShareOptions(!showShareOptions)
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl())
+      setCopied(true)
+      setShowShareOptions(false)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Failed to copy link:', error)
+    }
+  }
+
+  const handleWhatsAppShare = () => {
+    const shareData = getShareData()
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareData.text}\n${shareData.url}`)}`
+    window.open(whatsappUrl, '_blank')
+    setShowShareOptions(false)
+  }
+
+  // Close share options when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element
+      if (showShareOptions && !target.closest('.share-dropdown')) {
+        setShowShareOptions(false)
+      }
+    }
+
+    if (showShareOptions) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showShareOptions])
+
   if (loading) {
     return (
       <MainLayout>
@@ -243,89 +365,135 @@ export default function ProductDetailPage() {
               size="sm"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Back to Products</span>
+              <span className="hidden sm:inline">Back</span>
               <span className="sm:hidden">Back</span>
             </Button>
 
-            {/* Owner Action Buttons - Responsive */}
-{isOwner && (
-  <div className="flex items-center gap-1 sm:gap-2">
-    {product.status === 'LISTED' && (
-      <Button
-        onClick={handleMarkSold}
-        disabled={isMarkingSold}
-        className="btn-gradient-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-        size="sm"
-      >
-        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-        <span className="hidden xs:inline">
-          {isMarkingSold ? 'Marking...' : 'Mark as Sold'}
-        </span>
-        <span className="xs:hidden">
-          {isMarkingSold ? '...' : 'Mark Sold'}
-        </span>
-      </Button>
-    )}
-    
-    <Button
-      variant="outline"
-      className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-      size="sm"
-      asChild
-    >
-      <Link href={`/add?edit=${product.id}&type=product`}>
-        <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-        <span className="hidden xs:inline">Edit</span>
-        <span className="xs:hidden">Edit</span>
-      </Link>
-    </Button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              {/* Share Button with Dropdown */}
+              <div className="relative share-dropdown">
+                <Button
+                  variant="outline"
+                  onClick={handleShare}
+                  className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                  size="sm"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 text-green-500" />
+                      <span className="hidden sm:inline text-green-500">Copied!</span>
+                      <span className="sm:hidden text-green-500">✓</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Share</span>
+                      <span className="sm:hidden">Share</span>
+                    </>
+                  )}
+                </Button>
 
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-<Button
-  variant="destructive"
-  disabled={isDeleting}
-  className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
-  size="sm"
->
-  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-  
-  {/* Show on sm and larger */}
-  <span className="hidden sm:inline">
-    {isDeleting ? 'Deleting...' : 'Delete'}
-  </span>
+                {/* Share Options Dropdown */}
+                {showShareOptions && (
+                  <div className="absolute right-0 top-full mt-2 w-52 glass-card rounded-lg shadow-lg border border-white/20 z-50">
+                    <div className="p-2 space-y-1">
+                      <button
+                        onClick={handleCopyLink}
+                        className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors"
+                      >
+                        <Copy className="w-4 h-4 mr-3" />
+                        Copy Link
+                      </button>
+                      <button
+                        onClick={handleWhatsAppShare}
+                        className="w-full flex items-center px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors text-green-400"
+                      >
+                        <MessageSquareCode className="w-4 h-4 mr-3" />
+                        Share on WhatsApp
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
-  {/* Show below sm (mobile) */}
-  <span className="sm:hidden">
-    {isDeleting ? '...' : 'Del'}
-  </span>
-</Button>
+              {/* Owner Action Buttons - Responsive */}
+              {isOwner && (
+                <div className="flex items-center gap-1 sm:gap-2">
+                  {product.status === 'LISTED' && (
+                    <Button
+                      onClick={handleMarkSold}
+                      disabled={isMarkingSold}
+                      className="btn-gradient-primary text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                      size="sm"
+                    >
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">
+                        {isMarkingSold ? 'Marking...' : 'Mark as Sold'}
+                      </span>
+                      <span className="xs:hidden">
+                        {isMarkingSold ? '...' : 'Mark Sold'}
+                      </span>
+                    </Button>
+                  )}
+                  
+                  <Button
+                    variant="outline"
+                    className="glass border-white/20 text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                    size="sm"
+                    asChild
+                  >
+                    <Link href={`/add?edit=${product.id}&type=product`}>
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Edit</span>
+                      <span className="xs:hidden">Edit</span>
+                    </Link>
+                  </Button>
 
-      </AlertDialogTrigger>
-      <AlertDialogContent className="glass-card mx-2 sm:mx-4">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="flex items-center">
-            <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
-            Delete Product
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete &ldquo;{product.title}&rdquo;? This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            className="bg-red-600 hover:bg-red-700"
-          >
-            Delete Product
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  </div>
-)}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        disabled={isDeleting}
+                        className="text-xs sm:text-sm px-2 sm:px-3 py-1 sm:py-2"
+                        size="sm"
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        
+                        {/* Show on sm and larger */}
+                        <span className="hidden sm:inline">
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                        </span>
 
+                        {/* Show below sm (mobile) */}
+                        <span className="sm:hidden">
+                          {isDeleting ? '...' : 'Del'}
+                        </span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="glass-card mx-2 sm:mx-4">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center">
+                          <AlertTriangle className="w-5 h-5 mr-2 text-red-500" />
+                          Delete Product
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete &ldquo;{product.title}&rdquo;? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={handleDelete}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Delete Product
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Product Status Badge */}
