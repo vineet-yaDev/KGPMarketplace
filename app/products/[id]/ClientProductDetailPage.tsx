@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -15,14 +15,19 @@ import { Product, Service, ProductDetailResponse } from '@/lib/types'
 import { CONDITION_TEXT_MAP, PRODUCT_TYPE_TEXT_MAP, SEASONALITY_TEXT_MAP } from '@/lib/constants'
 import { useSession } from 'next-auth/react'
 
-export default function ClientProductDetailPage() {
+type Props = {
+  initialData?: ProductDetailResponse
+  productId?: string
+}
+
+export default function ClientProductDetailPage({ initialData, productId }: Props) {
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
   const [product, setProduct] = useState<Product | null>(null)
   const [similarProducts, setSimilarProducts] = useState<Product[]>([])
   const [relatedServices, setRelatedServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialData)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isMarkingSold, setIsMarkingSold] = useState(false)
@@ -64,7 +69,8 @@ export default function ClientProductDetailPage() {
   const fetchProductDetails = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/products/${params.id}`)
+      const id = (productId ?? (params.id as string))
+      const response = await fetch(`/api/products/${id}`, { cache: 'no-store' })
       const data: ProductDetailResponse = await response.json()
 
       if (response.ok) {
@@ -79,13 +85,20 @@ export default function ClientProductDetailPage() {
     } finally {
       setLoading(false)
     }
-  }, [params.id])
+  }, [params.id, productId])
 
+  // Hydrate from server initialData on first render
   useEffect(() => {
-    if (params.id) {
-      fetchProductDetails()
+    if (initialData) {
+      setProduct(initialData.product)
+      setSimilarProducts(initialData.similarProducts || [])
+      setRelatedServices(initialData.relatedServices || [])
+      setLoading(false)
+      return
     }
-  }, [params.id, fetchProductDetails])
+    const id = (productId ?? (params.id as string))
+    if (id) fetchProductDetails()
+  }, [initialData, fetchProductDetails, params.id, productId])
 
   // Close fullscreen on Escape key
   useEffect(() => {
@@ -269,9 +282,19 @@ export default function ClientProductDetailPage() {
     return (
       <MainLayout>
         <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading product details...</p>
+          <div className="w-full max-w-5xl mx-auto p-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="aspect-square rounded-xl bg-white/5 animate-pulse" />
+              <div className="space-y-4">
+                <div className="h-8 rounded bg-white/5 animate-pulse w-3/4" />
+                <div className="h-6 rounded bg-white/5 animate-pulse w-1/2" />
+                <div className="h-32 rounded bg-white/5 animate-pulse" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="h-16 rounded bg-white/5 animate-pulse" />
+                  <div className="h-16 rounded bg-white/5 animate-pulse" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -468,6 +491,8 @@ export default function ClientProductDetailPage() {
                       sizes="(max-width: 768px) 100vw, 50vw"
                       className="object-contain"
                       priority
+                      loading="eager"
+                      decoding="async"
                     />
                     {product.images.length > 1 && (
                       <>
@@ -528,6 +553,8 @@ export default function ClientProductDetailPage() {
                           fill
                           sizes="(max-width: 640px) 48px, 64px"
                           className="object-cover"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
                     </button>

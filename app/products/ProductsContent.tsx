@@ -689,7 +689,14 @@ export default function ProductsContent() {
               {viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {sortedProducts.map((product: Product) => (
-                    <Link key={product.id} href={`/products/${product.id}`} className="group">
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.id}`}
+                      className="group"
+                      prefetch={true}
+                      onMouseEnter={() => { /* Next.js prefetch attribute will handle preloading */ }}
+                      onTouchStart={() => { /* trigger prefetch early on touch */ }}
+                    >
                       <Card className="glass-card hover-lift overflow-hidden h-full">
                         <div className="aspect-video relative overflow-hidden">
                           {product.images && product.images.length > 0 ? (
@@ -770,7 +777,14 @@ export default function ProductsContent() {
               ) : viewMode === 'compact' ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                   {sortedProducts.map((product: Product) => (
-                    <Link key={product.id} href={`/products/${product.id}`} className="group">
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.id}`}
+                      className="group"
+                      prefetch={true}
+                      onMouseEnter={() => {}}
+                      onTouchStart={() => {}}
+                    >
                       <Card className="glass-card hover-lift overflow-hidden h-full">
                         <div className="aspect-square relative overflow-hidden">
                           {product.images && product.images.length > 0 ? (
@@ -845,7 +859,14 @@ export default function ProductsContent() {
               ) : (
                 <div className="space-y-3 sm:space-y-4">
                   {sortedProducts.map((product: Product) => (
-                    <Link key={product.id} href={`/products/${product.id}`} className="group">
+                    <Link
+                      key={product.id}
+                      href={`/products/${product.id}`}
+                      className="group"
+                      prefetch={true}
+                      onMouseEnter={() => {}}
+                      onTouchStart={() => {}}
+                    >
                       <Card className="glass-card hover-lift overflow-hidden mb-2">
                         <CardContent className="p-3 sm:p-6">
                           <div className="flex gap-3 sm:gap-4">
