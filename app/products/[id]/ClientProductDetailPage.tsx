@@ -24,10 +24,11 @@ export default function ClientProductDetailPage({ initialData, productId }: Prop
   const params = useParams()
   const router = useRouter()
   const { data: session } = useSession()
-  const [product, setProduct] = useState<Product | null>(null)
-  const [similarProducts, setSimilarProducts] = useState<Product[]>([])
-  const [relatedServices, setRelatedServices] = useState<Service[]>([])
+  const [product, setProduct] = useState<Product | null>(initialData?.product || null)
+  const [similarProducts, setSimilarProducts] = useState<Product[]>(initialData?.similarProducts || [])
+  const [relatedServices, setRelatedServices] = useState<Service[]>(initialData?.relatedServices || [])
   const [loading, setLoading] = useState(!initialData)
+  const [loadingSimilar, setLoadingSimilar] = useState(true) // Track similar content loading
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isMarkingSold, setIsMarkingSold] = useState(false)
@@ -44,6 +45,56 @@ export default function ClientProductDetailPage({ initialData, productId }: Prop
 
   // Check if current user owns this product
   const isOwner = session?.user?.email === product?.owner?.email
+
+  // Separate function to load similar content after main product loads
+  const fetchSimilarContent = useCallback(async (category: string, excludeId: string) => {
+    try {
+      setLoadingSimilar(true)
+      const [similarResponse, servicesResponse] = await Promise.all([
+        fetch(`/api/products?category=${category}&exclude=${excludeId}&limit=6`),
+        fetch(`/api/services?limit=6`)
+      ])
+      
+      if (similarResponse.ok) {
+        const similarData = await similarResponse.json()
+        setSimilarProducts(similarData.products || [])
+      }
+      
+      if (servicesResponse.ok) {
+        const servicesData = await servicesResponse.json()
+        setRelatedServices(servicesData.services || [])
+      }
+    } catch (error) {
+      console.error('Error fetching similar content:', error)
+    } finally {
+      setLoadingSimilar(false)
+    }
+  }, [])
+
+  const fetchProductDetails = useCallback(async () => {
+    try {
+      setLoading(true)
+      const id = (productId ?? (params.id as string))
+      const response = await fetch(`/api/products/${id}`, { cache: 'no-store' })
+      const data: ProductDetailResponse = await response.json()
+
+      if (response.ok) {
+        setProduct(data.product)
+        setLoading(false) // Show product details immediately
+        
+        // Load similar content separately for faster perceived performance
+        if (data.product.category) {
+          fetchSimilarContent(data.product.category, id)
+        }
+      } else {
+        console.error('Failed to fetch product:', data)
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error)
+      setLoading(false)
+    }
+  }, [params.id, productId, fetchSimilarContent])
 
   // Close invoice modal when clicking outside
   useEffect(() => {
@@ -66,39 +117,23 @@ export default function ClientProductDetailPage({ initialData, productId }: Prop
     }
   }, [showInvoice])
 
-  const fetchProductDetails = useCallback(async () => {
-    try {
-      setLoading(true)
-      const id = (productId ?? (params.id as string))
-      const response = await fetch(`/api/products/${id}`, { cache: 'no-store' })
-      const data: ProductDetailResponse = await response.json()
-
-      if (response.ok) {
-        setProduct(data.product)
-        setSimilarProducts(data.similarProducts || [])
-        setRelatedServices(data.relatedServices || [])
-      } else {
-        console.error('Failed to fetch product:', data)
-      }
-    } catch (error) {
-      console.error('Error fetching product:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [params.id, productId])
-
-  // Hydrate from server initialData on first render
+  // Handle initial data and progressive loading
   useEffect(() => {
-    if (initialData) {
+    if (initialData?.product) {
+      // We have server data - show product immediately
       setProduct(initialData.product)
-      setSimilarProducts(initialData.similarProducts || [])
-      setRelatedServices(initialData.relatedServices || [])
       setLoading(false)
-      return
+      
+      // Load similar content separately for better performance
+      if (initialData.product.category) {
+        fetchSimilarContent(initialData.product.category, initialData.product.id)
+      }
+    } else {
+      // No initial data - fetch everything
+      const id = (productId ?? (params.id as string))
+      if (id) fetchProductDetails()
     }
-    const id = (productId ?? (params.id as string))
-    if (id) fetchProductDetails()
-  }, [initialData, fetchProductDetails, params.id, productId])
+  }, [initialData, fetchProductDetails, fetchSimilarContent, params.id, productId])
 
   // Close fullscreen on Escape key
   useEffect(() => {
@@ -884,9 +919,28 @@ export default function ClientProductDetailPage({ initialData, productId }: Prop
           )}
 
           {/* Similar Products Section - Responsive */}
-          {similarProducts.length > 0 && (
-            <div className="mb-8 sm:mb-12">
-              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Similar Products</h2>
+          <div className="mb-8 sm:mb-12">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Similar Products</h2>
+            {loadingSimilar ? (
+              <div className="overflow-x-auto">
+                <div className="flex space-x-3 sm:space-x-4 pb-4" style={{ width: 'max-content' }}>
+                  {[...Array(6)].map((_, index) => (
+                    <div key={index} className="flex-shrink-0 w-48 sm:w-64">
+                      <Card className="glass-card h-full">
+                        <div className="aspect-video relative overflow-hidden rounded-t-lg bg-muted animate-pulse"></div>
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="h-4 bg-muted rounded animate-pulse mb-2"></div>
+                          <div className="flex items-center justify-between">
+                            <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                            <div className="h-6 bg-muted rounded animate-pulse w-12"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : similarProducts.length > 0 ? (
               <div className="overflow-x-auto">
                 <div className="flex space-x-3 sm:space-x-4 pb-4" style={{ width: 'max-content' }}>
                   {similarProducts.map((similarProduct: Product) => (
@@ -931,13 +985,34 @@ export default function ClientProductDetailPage({ initialData, productId }: Prop
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-muted-foreground">No similar products found.</p>
+            )}
+          </div>
 
           {/* Related Services Section - Responsive */}
-          {relatedServices.length > 0 && (
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Related Services</h2>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Related Services</h2>
+            {loadingSimilar ? (
+              <div className="overflow-x-auto">
+                <div className="flex space-x-3 sm:space-x-4 pb-4" style={{ width: 'max-content' }}>
+                  {[...Array(6)].map((_, index) => (
+                    <div key={index} className="flex-shrink-0 w-48 sm:w-64">
+                      <Card className="glass-card h-full">
+                        <div className="aspect-video relative overflow-hidden rounded-t-lg bg-muted animate-pulse"></div>
+                        <CardContent className="p-3 sm:p-4">
+                          <div className="h-4 bg-muted rounded animate-pulse mb-2"></div>
+                          <div className="flex items-center justify-between">
+                            <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                            <div className="h-6 bg-muted rounded animate-pulse w-12"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : relatedServices.length > 0 ? (
               <div className="overflow-x-auto">
                 <div className="flex space-x-3 sm:space-x-4 pb-4" style={{ width: 'max-content' }}>
                   {relatedServices.map((service: Service) => (
@@ -986,8 +1061,10 @@ export default function ClientProductDetailPage({ initialData, productId }: Prop
                   ))}
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-muted-foreground">No related services found.</p>
+            )}
+          </div>
         </div>
       </div>
     </MainLayout>

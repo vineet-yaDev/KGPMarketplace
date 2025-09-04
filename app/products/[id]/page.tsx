@@ -2,7 +2,7 @@
 import { headers } from 'next/headers'
 import type { Metadata } from 'next'
 import ClientProductDetailPage from './ClientProductDetailPage'
-import { getProductById, getAllProducts, getAllServices } from '@/lib/db'
+import { getProductById, getSimilarProducts, getAllServices, getAllProducts } from '@/lib/db'
 import type { ProductDetailResponse, Product as TProduct, Service as TService } from '@/lib/types'
 
 type Props = {
@@ -140,23 +140,16 @@ function serializeService(s: ServiceLike): TService {
   }
 }
 
-async function loadProductData(id: string): Promise<ProductDetailResponse | null> {
+// Ultra-fast loading - show product details immediately, defer similar content
+async function loadProductDataOptimized(id: string): Promise<ProductDetailResponse | null> {
   const product = await getProductById(id)
   if (!product) return null
-  const [allProducts, allServices] = await Promise.all([
-    getAllProducts(),
-    getAllServices(),
-  ]) as unknown as [ProductLike[], ServiceLike[]]
 
-  const similarProducts = allProducts
-    .filter(p => p.id !== id && p.category === product.category)
-    .slice(0, 8)
-  const recentServices = allServices.slice(0, 8)
-
+  // Return immediately with just the product, load similar content separately
   return {
     product: serializeProduct(product),
-    similarProducts: similarProducts.map(serializeProduct),
-    relatedServices: recentServices.map(serializeService),
+    similarProducts: [], // Load these async on client
+    relatedServices: [], // Load these async on client
   }
 }
 
@@ -220,7 +213,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Page({ params }: Props) {
   const resolvedParams = await params
   // Server-fetch via DB to avoid internal HTTP roundtrip
-  const data = await loadProductData(resolvedParams.id)
+  const data = await loadProductDataOptimized(resolvedParams.id)
 
   return (
     <ClientProductDetailPage
@@ -230,15 +223,17 @@ export default async function Page({ params }: Props) {
   )
 }
 
-// Allow short caching to enable route prefetch of RSC payload
-export const revalidate = 60
+// Aggressive caching for production - cache for 5 minutes
+export const revalidate = 300
 
-// Pre-render a subset of recent products for snappy first navigation
+// Pre-render popular products for instant loading
 export async function generateStaticParams() {
   try {
-    const products = await getAllProducts(50, 'newest') as unknown as ProductLike[]
+    // Only pre-render top 20 most recent products to avoid build timeouts
+    const products = await getAllProducts(20, 'newest') as unknown as ProductLike[]
     return products.map((p) => ({ id: p.id }))
   } catch {
+    // Fail gracefully - no static params is better than build failure
     return []
   }
 }

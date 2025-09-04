@@ -203,11 +203,30 @@ export async function getAllProducts(limit?: number, sort?: string | null): Prom
       where: { status: 'LISTED' },
       include: { owner: ownerSelect },
       orderBy,
-      // Apply limit if provided
-      ...(limit && { take: limit }),
+      // Apply limit if provided, default to 50 for performance
+      take: limit || 50,
     });
   } catch (error) {
     console.error('Error fetching all products:', error);
+    return [];
+  }
+}
+
+// Optimized query for similar products - avoids fetching all products
+export async function getSimilarProducts(categoryFilter: string, excludeId: string, limit: number = 6): Promise<Product[]> {
+  try {
+    return await prisma.product.findMany({
+      where: { 
+        status: 'LISTED',
+        category: categoryFilter as ProductCategory,
+        NOT: { id: excludeId }
+      },
+      include: { owner: ownerSelect },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  } catch (error) {
+    console.error('Error fetching similar products:', error);
     return [];
   }
 }
@@ -292,11 +311,29 @@ export async function getAllServices(limit?: number, sort?: string | null): Prom
     return await prisma.service.findMany({
       include: { owner: ownerSelect },
       orderBy,
-      // Apply limit if provided
-      ...(limit && { take: limit }),
+      // Apply limit if provided, default to 20 for performance
+      take: limit || 20,
     });
   } catch (error) {
     console.error('Error fetching all services:', error);
+    return [];
+  }
+}
+
+// Optimized query for similar services - avoids fetching all services
+export async function getSimilarServices(categoryFilter: string, excludeId: string, limit: number = 6): Promise<Service[]> {
+  try {
+    return await prisma.service.findMany({
+      where: {
+        category: categoryFilter as ServiceCategory,
+        NOT: { id: excludeId },
+      },
+      include: { owner: ownerSelect },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+  } catch (error) {
+    console.error('Error fetching similar services:', error);
     return [];
   }
 }

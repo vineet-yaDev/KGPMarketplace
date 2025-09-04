@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const limitParam = searchParams.get('limit')
     const sort = searchParams.get('sort')
+  const category = searchParams.get('category')
+  const exclude = searchParams.get('exclude')
     
     // Parse limit to number only if it exists and is valid, otherwise undefined
     const limitNumber = limitParam ? parseInt(limitParam, 10) : undefined
@@ -15,7 +17,14 @@ export async function GET(request: NextRequest) {
     // Validate that limit is a positive number if provided
     const validLimit = limitNumber && limitNumber > 0 ? limitNumber : undefined
     
-    // Pass parameters to getAllServices function
+    // If category filter is requested, use optimized query
+    if (category && exclude) {
+      const { getSimilarServices } = await import('@/lib/db')
+      const services = await getSimilarServices(category, exclude, validLimit || 6)
+      return NextResponse.json({ services })
+    }
+
+    // Pass parameters to getAllServices function for general queries
     const services = await getAllServices(validLimit, sort)
     return NextResponse.json({ services })
   } catch (error) {

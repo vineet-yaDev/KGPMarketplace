@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Performance optimizations for production
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@next/font'],
+  },
+  // Enable static generation and caching
+  generateBuildId: async () => {
+    return 'kgp-marketplace-' + new Date().getTime()
+  },
+  // Compress responses
+  compress: true,
 };
 
 export default nextConfig;

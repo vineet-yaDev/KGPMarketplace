@@ -8,11 +8,20 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const limit = searchParams.get('limit')
     const sort = searchParams.get('sort')
+    const category = searchParams.get('category')
+    const exclude = searchParams.get('exclude')
     
     // Parse limit to number, default to undefined if not provided
     const limitNumber = limit ? parseInt(limit, 10) : undefined
     
-    // Pass parameters to getAllProducts function
+    // If category filter is requested, use getSimilarProducts for optimized query
+    if (category && exclude) {
+      const { getSimilarProducts } = await import('@/lib/db')
+      const products = await getSimilarProducts(category, exclude, limitNumber || 6)
+      return NextResponse.json({ products })
+    }
+    
+    // Pass parameters to getAllProducts function for general queries
     const products = await getAllProducts(limitNumber, sort)
     return NextResponse.json({ products })
   } catch (error) {
