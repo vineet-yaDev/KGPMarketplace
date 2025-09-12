@@ -37,6 +37,20 @@ export default function AboutUsPage() {
         email: "sudeepbhurat@gmail.com"
       },
       gradient: "from-pink-600 via-rose-600 to-orange-600"
+    },
+    {
+      name: "Sachin",
+      role: "Co-Founder & CTO",
+      image: "",
+      bio: "As Co-Founder and CTO, Sachin is the technical architect behind the platform. With a deep passion for clean code and robust systems, he leads the engineering efforts to ensure a secure, scalable, and high-performance experience for all users. He thrives on solving complex technical puzzles and mentoring the development team.",
+      skills: ["Tailwind", "NextJS", "Vercel", "System Design"],
+      social: {
+        github: "https://github.com/sachin",
+        instagram: "https://instagram.com/sachin",
+        linkedin: "https://linkedin.com/in/sachin",
+        email: "sachin@example.com"
+      },
+      gradient: "from-green-500 via-teal-500 to-cyan-500"
     }
   ]
 
