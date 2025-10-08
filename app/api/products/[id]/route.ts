@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getProductById, getAllProducts, getAllServices } from '@/lib/db'
+import { getProductById, getAllProductsLegacy, getAllServices } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     // Fetch similar products (same category, excluding current product)
-    const allProducts = await getAllProducts()
+    const allProducts = await getAllProductsLegacy()
     const similarProducts = allProducts
       .filter(p => p.id !== productId && p.category === product.category)
       .slice(0, 8) // Limit to 8 similar products

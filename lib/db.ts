@@ -194,20 +194,80 @@ export async function getProductsByUserEmail(email: string): Promise<Product[]> 
   }
 }
 
-export async function getAllProducts(limit?: number, sort?: string | null): Promise<Product[]> {
+// Updated function to support pagination with offset and cursor
+export async function getAllProducts(
+  limit?: number, 
+  sort?: string | null, 
+  offset?: number,
+  cursor?: string
+): Promise<{ products: Product[]; hasMore: boolean; nextCursor?: string }> {
   try {
     // Determine the order based on sort parameter
     const orderBy = sort === 'newest' ? { createdAt: 'desc' as const} : { createdAt: 'desc' as const }
     
+    const take = limit || 50;
+    const skip = offset || 0;
+    
+    let products;
+    
+    if (cursor) {
+      products = await prisma.product.findMany({
+        where: { status: 'LISTED' },
+        include: { owner: ownerSelect },
+        orderBy,
+        take: take + 1,
+        cursor: { id: cursor },
+        skip: 1,
+      });
+    } else {
+      products = await prisma.product.findMany({
+        where: { status: 'LISTED' },
+        include: { owner: ownerSelect },
+        orderBy,
+        take: take + 1,
+        skip: skip > 0 ? skip : undefined,
+      });
+    }
+
+    // Check if there are more products
+    const hasMore = products.length > take;
+    const productsToReturn = hasMore ? products.slice(0, take) : products;
+    const nextCursor = hasMore && productsToReturn.length > 0 
+      ? productsToReturn[productsToReturn.length - 1].id 
+      : undefined;
+
+    return {
+      products: productsToReturn,
+      hasMore,
+      nextCursor
+    };
+  } catch (error) {
+    console.error('Error fetching all products:', error);
+    return { products: [], hasMore: false };
+  }
+}
+
+// Legacy function for backwards compatibility
+export async function getAllProductsLegacy(limit?: number, sort?: string | null): Promise<Product[]> {
+  try {
+    const result = await getAllProducts(limit, sort);
+    return result.products;
+  } catch (error) {
+    console.error('Error fetching all products (legacy):', error);
+    return [];
+  }
+}
+
+// Function to get all products for search/filtering (without pagination)
+export async function getAllProductsForSearch(): Promise<Product[]> {
+  try {
     return await prisma.product.findMany({
       where: { status: 'LISTED' },
       include: { owner: ownerSelect },
-      orderBy,
-      // Apply limit if provided, default to 50 for performance
-      take: limit || 50,
+      orderBy: { createdAt: 'desc' },
     });
   } catch (error) {
-    console.error('Error fetching all products:', error);
+    console.error('Error fetching all products for search:', error);
     return [];
   }
 }

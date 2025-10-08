@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServiceById, getAllServices, getAllProducts } from '@/lib/db'
+import { getServiceById, getAllServices, getAllProductsLegacy } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -30,7 +30,7 @@ export async function GET(
       .slice(0, 8) // Limit to 8 similar services
 
     // Fetch recent products for recommendations
-    const allProducts = await getAllProducts()
+    const allProducts = await getAllProductsLegacy()
     const recentProducts = allProducts.slice(0, 8) // Get 8 recent products
 
     return NextResponse.json({

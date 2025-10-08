@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, Grid, List, X, Filter, Check } from 'lucide-react'
+import { Search, Grid, List, X, Filter, Check, Loader2 } from 'lucide-react'
 import MainLayout from '@/components/MainLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,8 +39,16 @@ interface FilterDropdownProps {
 }
 
 export default function ProductsContent() {
+  // Infinite scroll state
   const [products, setProducts] = useState<Product[]>([])
+  const [allProductsForSearch, setAllProductsForSearch] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [currentOffset, setCurrentOffset] = useState(0)
+  const [nextCursor, setNextCursor] = useState<string | undefined>()
+  
+  // Filter state
   const [searchQuery, setSearchQuery] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
@@ -49,15 +57,18 @@ export default function ProductsContent() {
   const [selectedStatus, setSelectedStatus] = useState('')
   const [selectedSeasonality, setSelectedSeasonality] = useState('')
   const [selectedCondition, setSelectedCondition] = useState('')
-  const [selectedDiscount, setSelectedDiscount] = useState('')  // New state for discount filter
+  const [selectedDiscount, setSelectedDiscount] = useState('')
   const [maxPrice, setMaxPrice] = useState([1000000])
   const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
 
+  // Refs
   const searchParams = useSearchParams()
   const router = useRouter()
   const filterModalRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // Close mobile filter when clicking outside - but not when clicking on select items
   useEffect(() => {
@@ -168,28 +179,111 @@ export default function ProductsContent() {
     router.push(newURL, { scroll: false })
   }, [router])
 
-  // Fetch products from API
+  // Initial data load and all products for search
   useEffect(() => {
-    fetchProducts()
+    loadInitialData()
   }, [])
 
-  const fetchProducts = async () => {
+  const loadInitialData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/products')
-      const data = await response.json()
       
-      if (response.ok) {
-        setProducts(data.products || [])
+      // Load first 50 products for display immediately
+      const initialResponse = await fetch('/api/products?limit=50')
+      const initialData = await initialResponse.json()
+      
+      if (initialResponse.ok && initialData.products) {
+        setProducts(initialData.products)
+        setHasMore(initialData.hasMore)
+        setNextCursor(initialData.nextCursor)
+        setCurrentOffset(50)
+        setLoading(false) // Show products immediately
+        
+        // Load all products for search/filter in background
+        fetch('/api/products?forSearch=true')
+          .then(response => response.json())
+          .then(data => {
+            if (data.products) {
+              setAllProductsForSearch(data.products)
+            }
+          })
+          .catch(error => {
+            console.error('Error loading products for search:', error)
+          })
       } else {
-        console.error('Failed to fetch products:', data.error)
+        setLoading(false)
       }
+      
     } catch (error) {
-      console.error('Error fetching products:', error)
-    } finally {
+      console.error('Error loading initial data:', error)
       setLoading(false)
     }
   }
+
+  // Load more products for infinite scroll
+  const loadMoreProducts = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    
+    try {
+      setLoadingMore(true)
+      
+      // Use cursor-based pagination if available, otherwise use offset
+      const params = new URLSearchParams({
+        limit: '30',
+        sort: sortBy
+      })
+      
+      if (nextCursor) {
+        params.set('cursor', nextCursor)
+      } else {
+        params.set('offset', currentOffset.toString())
+      }
+      
+      const response = await fetch(`/api/products?${params}`)
+      const data = await response.json()
+      
+      if (response.ok && data.products) {
+        setProducts(prev => [...prev, ...data.products])
+        setHasMore(data.hasMore)
+        setNextCursor(data.nextCursor)
+        setCurrentOffset(prev => prev + data.products.length)
+      }
+      
+    } catch (error) {
+      console.error('Error loading more products:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [loadingMore, hasMore, nextCursor, currentOffset, sortBy])
+
+  // Check if any filters are active
+  const hasActiveFilters = selectedCategory || selectedHall || selectedType || 
+                          selectedStatus || selectedSeasonality || selectedCondition || 
+                          selectedDiscount || maxPrice[0] < 1000000 || searchQuery
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    if (loadMoreRef.current) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          const target = entries[0]
+          // Only load more if no filters are active and we have more data
+          if (target.isIntersecting && hasMore && !loadingMore && !hasActiveFilters) {
+            loadMoreProducts()
+          }
+        },
+        { threshold: 0.1 }
+      )
+      
+      observerRef.current.observe(loadMoreRef.current)
+    }
+    
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [hasMore, loadingMore, loadMoreProducts, hasActiveFilters])
 
   const handleFilterChange = useCallback((filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters = {
@@ -286,32 +380,38 @@ export default function ProductsContent() {
     router.push('/products')
   }
 
-  const filteredProducts = products.filter((product: Product) => {
-    const matchesSearch = !searchQuery || 
-      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesCategory = !selectedCategory || product.category === selectedCategory
-    const matchesHall = !selectedHall || product.addressHall === selectedHall
-    const matchesType = !selectedType || product.productType === selectedType
-    const matchesStatus = !selectedStatus || product.status === selectedStatus
-    const matchesSeasonality = !selectedSeasonality || product.seasonality === selectedSeasonality
-    const matchesCondition = !selectedCondition || product.condition === parseInt(selectedCondition)
-    const matchesPrice = !product.price || product.price <= maxPrice[0]
-    
-    // New: Calculate discount and apply filter
-    const getDiscount = (p: Product) => {
-      if (!p.price || p.price === 0) return 100;
-      if (p.originalPrice && p.price) {
-        return Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100);
-      }
-      return 0;
-    };
-    
-    const matchesDiscount = !selectedDiscount || getDiscount(product) > parseInt(selectedDiscount);
-    
-    return matchesSearch && matchesCategory && matchesHall && matchesType && 
-           matchesStatus && matchesSeasonality && matchesCondition && matchesPrice && matchesDiscount;
-  })
+  // Use all products for filtering when filters are active, otherwise use paginated products
+  const productsToFilter = hasActiveFilters ? allProductsForSearch : products
+
+  const filteredProducts = useMemo(() => {
+    return productsToFilter.filter((product: Product) => {
+      const matchesSearch = !searchQuery || 
+        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      const matchesCategory = !selectedCategory || product.category === selectedCategory
+      const matchesHall = !selectedHall || product.addressHall === selectedHall
+      const matchesType = !selectedType || product.productType === selectedType
+      const matchesStatus = !selectedStatus || product.status === selectedStatus
+      const matchesSeasonality = !selectedSeasonality || product.seasonality === selectedSeasonality
+      const matchesCondition = !selectedCondition || product.condition === parseInt(selectedCondition)
+      const matchesPrice = !product.price || product.price <= maxPrice[0]
+      
+      // Calculate discount and apply filter
+      const getDiscount = (p: Product) => {
+        if (!p.price || p.price === 0) return 100;
+        if (p.originalPrice && p.price) {
+          return Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100);
+        }
+        return 0;
+      };
+      
+      const matchesDiscount = !selectedDiscount || getDiscount(product) > parseInt(selectedDiscount);
+      
+      return matchesSearch && matchesCategory && matchesHall && matchesType && 
+             matchesStatus && matchesSeasonality && matchesCondition && matchesPrice && matchesDiscount;
+    })
+  }, [productsToFilter, searchQuery, selectedCategory, selectedHall, selectedType, 
+      selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, maxPrice])
 
   const sortedProducts = [...filteredProducts].sort((a: Product, b: Product) => {
     switch (sortBy) {
@@ -339,10 +439,6 @@ export default function ProductsContent() {
       maximumFractionDigits: 0
     }).format(amount)
   }
-
-  const hasActiveFilters = selectedCategory || selectedHall || selectedType || 
-                          selectedStatus || selectedSeasonality || selectedCondition || 
-                          selectedDiscount || maxPrice[0] < 1000000 || searchQuery  // New: Include selectedDiscount
 
   if (loading) {
     return (
@@ -971,6 +1067,30 @@ export default function ProductsContent() {
                       </Card>
                     </Link>
                   ))}
+                </div>
+              )}
+
+              {/* Infinite Scroll Trigger - Always show when there are products */}
+              {sortedProducts.length > 0 && (
+                <div ref={loadMoreRef} className="flex justify-center py-8">
+                  {loadingMore ? (
+                    <div className="flex items-center space-x-2 text-muted-foreground">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Loading more products...</span>
+                    </div>
+                  ) : hasMore && !hasActiveFilters ? (
+                    <>
+                      {/* Invisible trigger for infinite scroll */}
+                      <div className="h-4"></div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      {hasActiveFilters ? 
+                        `${sortedProducts.length} product${sortedProducts.length !== 1 ? 's' : ''} found` :
+                        `All ${sortedProducts.length} products loaded`
+                      }
+                    </p>
+                  )}
                 </div>
               )}
 

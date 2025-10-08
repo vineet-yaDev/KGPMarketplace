@@ -2,7 +2,7 @@
 import { headers } from 'next/headers'
 import type { Metadata } from 'next'
 import ClientProductDetailPage from './ClientProductDetailPage'
-import { getProductById, getSimilarProducts, getAllServices, getAllProducts } from '@/lib/db'
+import { getProductById, getAllProductsLegacy } from '@/lib/db'
 import type { ProductDetailResponse, Product as TProduct, Service as TService } from '@/lib/types'
 
 type Props = {
@@ -230,7 +230,7 @@ export const revalidate = 300
 export async function generateStaticParams() {
   try {
     // Only pre-render top 20 most recent products to avoid build timeouts
-    const products = await getAllProducts(20, 'newest') as unknown as ProductLike[]
+    const products = await getAllProductsLegacy(20, 'newest') as unknown as ProductLike[]
     return products.map((p) => ({ id: p.id }))
   } catch {
     // Fail gracefully - no static params is better than build failure
