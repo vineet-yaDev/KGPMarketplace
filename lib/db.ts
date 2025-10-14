@@ -380,6 +380,20 @@ export async function getAllServices(limit?: number, sort?: string | null): Prom
   }
 }
 
+// Get all services for search functionality (no limit)
+export async function getAllServicesForSearch(): Promise<Service[]> {
+  try {
+    return await prisma.service.findMany({
+      include: { owner: ownerSelect },
+      orderBy: { createdAt: 'desc' },
+      // No limit - get all for client-side fuzzy search
+    });
+  } catch (error) {
+    console.error('Error fetching all services for search:', error);
+    return [];
+  }
+}
+
 // Optimized query for similar services - avoids fetching all services
 export async function getSimilarServices(categoryFilter: string, excludeId: string, limit: number = 6): Promise<Service[]> {
   try {
@@ -502,4 +516,9 @@ export async function getAllDemands(): Promise<Demand[]> {
     console.error('Error fetching all demands:', error);
     return [];
   }
+}
+
+// Get all demands for search functionality (alias for getAllDemands since it already gets all)
+export async function getAllDemandsForSearch(): Promise<Demand[]> {
+  return getAllDemands()
 }

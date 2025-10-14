@@ -8,14 +8,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const limitParam = searchParams.get('limit')
     const sort = searchParams.get('sort')
-  const category = searchParams.get('category')
-  const exclude = searchParams.get('exclude')
+    const category = searchParams.get('category')
+    const exclude = searchParams.get('exclude')
+    const forSearch = searchParams.get('forSearch') // Flag to get all services for search
     
     // Parse limit to number only if it exists and is valid, otherwise undefined
     const limitNumber = limitParam ? parseInt(limitParam, 10) : undefined
     
     // Validate that limit is a positive number if provided
     const validLimit = limitNumber && limitNumber > 0 ? limitNumber : undefined
+    
+    // If forSearch flag is set, return all services for client-side filtering
+    if (forSearch === 'true') {
+      const { getAllServicesForSearch } = await import('@/lib/db')
+      const services = await getAllServicesForSearch()
+      return NextResponse.json({ services })
+    }
     
     // If category filter is requested, use optimized query
     if (category && exclude) {

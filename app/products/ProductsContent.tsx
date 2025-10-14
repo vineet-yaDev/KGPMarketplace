@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { useDebounce } from '@/hooks/useDebounce'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Search, Grid, List, X, Filter, Check, Loader2 } from 'lucide-react'
@@ -15,6 +16,7 @@ import { Separator } from '@/components/ui/separator'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { FilterState, Product, ProductCategory, KGPHalls } from '@/lib/types'
+// Local search implementation
 import { 
   PRODUCT_CATEGORIES,
   HALLS,
@@ -26,6 +28,7 @@ import {
   SEASONALITY_TEXT_MAP,
   formatEnumName
 } from '@/lib/constants'
+import { matchesSearchQuery } from '@/lib/searchUtils'
 
 
 // Type for FilterDropdown props
@@ -50,7 +53,7 @@ export default function ProductsContent() {
   
   // Filter state
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 700) // Debounced with 700ms delay
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedHall, setSelectedHall] = useState('')
   const [selectedType, setSelectedType] = useState('')
@@ -59,6 +62,7 @@ export default function ProductsContent() {
   const [selectedCondition, setSelectedCondition] = useState('')
   const [selectedDiscount, setSelectedDiscount] = useState('')
   const [maxPrice, setMaxPrice] = useState([1000000])
+  const debouncedMaxPrice = useDebounce(maxPrice[0], 700) // Debounced with 700ms delay
   const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid')
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -69,6 +73,9 @@ export default function ProductsContent() {
   const filterModalRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
+
+  // Local search - filter products by title and description
+  console.log('Products page - Search query:', searchQuery)
 
   // Close mobile filter when clicking outside - but not when clicking on select items
   useEffect(() => {
@@ -120,7 +127,7 @@ export default function ProductsContent() {
     const status = searchParams.get('status')
     const seasonality = searchParams.get('seasonality')
     const condition = searchParams.get('condition')
-    const discount = searchParams.get('discount')  // New: Get discount from URL
+    const discount = searchParams.get('discount')
     const price = searchParams.get('maxPrice')
     const search = searchParams.get('search')
     const sort = searchParams.get('sort')
@@ -143,15 +150,14 @@ export default function ProductsContent() {
     if (condition && ['1', '2', '3', '4', '5'].includes(condition)) {
       setSelectedCondition(condition)
     }
-    if (discount && ['20', '30', '40', '50', '60', '70'].includes(discount)) {  // New: Set discount if valid
+    if (discount && ['20', '30', '40', '50', '60', '70'].includes(discount)) {
       setSelectedDiscount(discount)
     }
     if (price && !isNaN(Number(price))) {
       setMaxPrice([Number(price)])
     }
     if (search) {
-  setSearchQuery(search)
-  setSearchInput(search)
+      setSearchQuery(search)
     }
     if (sort) {
       setSortBy(sort)
@@ -259,7 +265,7 @@ export default function ProductsContent() {
   // Check if any filters are active
   const hasActiveFilters = selectedCategory || selectedHall || selectedType || 
                           selectedStatus || selectedSeasonality || selectedCondition || 
-                          selectedDiscount || maxPrice[0] < 1000000 || searchQuery
+                          selectedDiscount || maxPrice[0] < 1000000 || debouncedSearchQuery
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -286,6 +292,112 @@ export default function ProductsContent() {
   }, [hasMore, loadingMore, loadMoreProducts, hasActiveFilters])
 
   const handleFilterChange = useCallback((filterType: string, value: string | number, isMobile: boolean = false) => {
+    const filterValue = value === "all" ? "" : value as string
+
+    // Create filters object based on current state and the new value
+    const getUpdatedFilters = () => {
+      const filters = {
+        category: selectedCategory,
+        hall: selectedHall,
+        type: selectedType,
+        status: selectedStatus,
+        seasonality: selectedSeasonality,
+        condition: selectedCondition,
+        discount: selectedDiscount,
+        maxPrice: maxPrice[0],
+        search: searchQuery,
+        sort: sortBy
+      }
+
+      // Apply the specific filter change
+      switch (filterType) {
+        case 'category':
+          filters.category = filterValue
+          break
+        case 'hall':
+          filters.hall = filterValue
+          break
+        case 'type':
+          filters.type = filterValue
+          break
+        case 'status':
+          filters.status = filterValue
+          break
+        case 'seasonality':
+          filters.seasonality = filterValue
+          break
+        case 'condition':
+          filters.condition = filterValue
+          break
+        case 'discount':
+          filters.discount = filterValue
+          break
+        case 'maxPrice':
+          filters.maxPrice = value as number
+          break
+        case 'search':
+          filters.search = value as string
+          break
+        case 'sort':
+          filters.sort = value as string
+          break
+      }
+      return filters
+    }
+
+    // Update state
+    switch (filterType) {
+      case 'category':
+        setSelectedCategory(filterValue)
+        break
+      case 'hall':
+        setSelectedHall(filterValue)
+        break
+      case 'type':
+        setSelectedType(filterValue)
+        break
+      case 'status':
+        setSelectedStatus(filterValue)
+        break
+      case 'seasonality':
+        setSelectedSeasonality(filterValue)
+        break
+      case 'condition':
+        setSelectedCondition(filterValue)
+        break
+      case 'discount':
+        setSelectedDiscount(filterValue)
+        break
+      case 'maxPrice':
+        setMaxPrice([value as number])
+        // URL update for price is handled in separate effect
+        return
+      case 'search':
+        setSearchQuery(value as string)
+        // URL update for search is handled in separate effect
+        return
+      case 'sort':
+        setSortBy(value as string)
+        break
+    }
+
+    // Update URL with the updated filters
+    const updatedFilters = getUpdatedFilters()
+    
+    if (isMobile) {
+      // Small delay to allow the select to close properly first
+      setTimeout(() => {
+        updateURL(updatedFilters)
+      }, 50)
+    } else {
+      updateURL(updatedFilters)
+    }
+  }, [selectedCategory, selectedHall, selectedType, selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, maxPrice, sortBy, searchQuery, updateURL])
+
+  // Local search - no API calls needed
+
+  // Update URL when filters change
+  useEffect(() => {
     const filters = {
       category: selectedCategory,
       hall: selectedHall,
@@ -293,77 +405,13 @@ export default function ProductsContent() {
       status: selectedStatus,
       seasonality: selectedSeasonality,
       condition: selectedCondition,
-      discount: selectedDiscount,  // New: Include discount in filters object
-      maxPrice: maxPrice[0],
-      search: searchQuery,
+      discount: selectedDiscount,
+      maxPrice: debouncedMaxPrice,
+      search: debouncedSearchQuery,
       sort: sortBy
     }
-
-    const filterValue = value === "all" ? "" : value as string
-
-    switch (filterType) {
-      case 'category':
-        setSelectedCategory(filterValue)
-        filters.category = filterValue
-        break
-      case 'hall':
-        setSelectedHall(filterValue)
-        filters.hall = filterValue
-        break
-      case 'type':
-        setSelectedType(filterValue)
-        filters.type = filterValue
-        break
-      case 'status':
-        setSelectedStatus(filterValue)
-        filters.status = filterValue
-        break
-      case 'seasonality':
-        setSelectedSeasonality(filterValue)
-        filters.seasonality = filterValue
-        break
-      case 'condition':
-        setSelectedCondition(filterValue)
-        filters.condition = filterValue
-        break
-      case 'discount':  // New: Handle discount filter
-        setSelectedDiscount(filterValue)
-        filters.discount = filterValue
-        break
-      case 'maxPrice':
-        setMaxPrice([value as number])
-        filters.maxPrice = value as number
-        break
-      case 'search':
-        setSearchQuery(value as string)
-        filters.search = value as string
-        break
-      case 'sort':
-        setSortBy(value as string)
-        filters.sort = value as string
-        break
-    }
-
-    // Update URL immediately for desktop, but delay for mobile to prevent modal closing
-    if (isMobile) {
-      // Small delay to allow the select to close properly first
-      setTimeout(() => {
-        updateURL(filters)
-      }, 50)
-    } else {
-      updateURL(filters)
-    }
-  }, [selectedCategory, selectedHall, selectedType, selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, maxPrice, searchQuery, sortBy, updateURL])
-
-  // Debounce search input changes (700ms)
-  useEffect(() => {
-    const id = setTimeout(() => {
-      // Only trigger search update when value actually changes (including empty to clear)
-      handleFilterChange('search', searchInput)
-    }, 700)
-
-    return () => clearTimeout(id)
-  }, [searchInput, handleFilterChange])
+    updateURL(filters)
+  }, [debouncedSearchQuery, debouncedMaxPrice, selectedCategory, selectedHall, selectedType, selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, sortBy, updateURL])
 
   const clearFilters = () => {
     setSelectedCategory('')
@@ -375,7 +423,6 @@ export default function ProductsContent() {
     setSelectedDiscount('')  // New: Clear discount filter
     setMaxPrice([1000000])
   setSearchQuery('')
-  setSearchInput('')
     setSortBy('newest')
     router.push('/products')
   }
@@ -383,18 +430,20 @@ export default function ProductsContent() {
   // Use all products for filtering when filters are active, otherwise use paginated products
   const productsToFilter = hasActiveFilters ? allProductsForSearch : products
 
+  // Local search - filter products by title and description
   const filteredProducts = useMemo(() => {
     return productsToFilter.filter((product: Product) => {
-      const matchesSearch = !searchQuery || 
-        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      // Search in title and description using space-insensitive matching
+      const matchesSearch = matchesSearchQuery(product.title, product.description, debouncedSearchQuery);
+      
+      // Apply other filters
       const matchesCategory = !selectedCategory || product.category === selectedCategory
       const matchesHall = !selectedHall || product.addressHall === selectedHall
       const matchesType = !selectedType || product.productType === selectedType
       const matchesStatus = !selectedStatus || product.status === selectedStatus
       const matchesSeasonality = !selectedSeasonality || product.seasonality === selectedSeasonality
       const matchesCondition = !selectedCondition || product.condition === parseInt(selectedCondition)
-      const matchesPrice = !product.price || product.price <= maxPrice[0]
+      const matchesPrice = !product.price || product.price <= debouncedMaxPrice
       
       // Calculate discount and apply filter
       const getDiscount = (p: Product) => {
@@ -410,8 +459,8 @@ export default function ProductsContent() {
       return matchesSearch && matchesCategory && matchesHall && matchesType && 
              matchesStatus && matchesSeasonality && matchesCondition && matchesPrice && matchesDiscount;
     })
-  }, [productsToFilter, searchQuery, selectedCategory, selectedHall, selectedType, 
-      selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, maxPrice])
+  }, [productsToFilter, debouncedSearchQuery, selectedCategory, selectedHall, selectedType, 
+      selectedStatus, selectedSeasonality, selectedCondition, selectedDiscount, debouncedMaxPrice])
 
   const sortedProducts = [...filteredProducts].sort((a: Product, b: Product) => {
     switch (sortBy) {
@@ -612,8 +661,10 @@ export default function ProductsContent() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search products..."
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value)
+                      }}
                       className="pl-10 glass border-white/20"
                     />
                   </div>

@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: service.images?.[0] ? [service.images[0]] : [],
       },
     }
-  } catch (error) {
+  } catch {
     return {
       title: 'Service | KGP Marketplace',
     }

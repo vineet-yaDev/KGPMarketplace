@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, Grid, List, X, Filter, Check } from 'lucide-react';
@@ -23,8 +24,8 @@ import {
   SERVICE_CATEGORY_TEXT_MAP,
   formatEnumName
 } from '@/lib/constants';
-// Import the fuzzy search hook for services (similar to products)
-import { useServiceSearch } from '@/hooks/useServiceSearch';
+import { matchesSearchQuery } from '@/lib/searchUtils';
+// Local search implementation - no API calls needed
 
 interface FilterDropdownProps {
   label: string;
@@ -49,7 +50,6 @@ export default function ServicesContent() {
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchInput, setSearchInput] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedHall, setSelectedHall] = useState('');
   const [selectedExperienceRange, setSelectedExperienceRange] = useState('');
@@ -58,17 +58,20 @@ export default function ServicesContent() {
   const [sortBy, setSortBy] = useState('newest');
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [useFuzzySearch, setUseFuzzySearch] = useState(false);
+  // Local search implementation with debouncing
+  const debouncedSearchQuery = useDebounce(searchQuery, 700);
+  // Also debounce the search query for URL updates to keep them in sync
+  const debouncedSearchForURL = useDebounce(searchQuery, 700);
+  // Debounce price changes for filtering and URL updates
+  const debouncedMinPrice = useDebounce(minPrice[0], 700);
+  const debouncedMaxPrice = useDebounce(maxPrice[0], 700);
 
   const searchParams = useSearchParams();
   const router = useRouter();
   const filterModalRef = useRef<HTMLDivElement>(null);
 
-  // Use fuzzy search hook for services
-  const { results: fuzzyResults, 
-    // loading: fuzzyLoading, 
-    // error: fuzzyError, 
-    search } = useServiceSearch();
+  // Local search - filter services by title and description
+  console.log('Services page - Search query:', searchQuery, 'Debounced:', debouncedSearchQuery)
 
   // Initialize filters from URL params
   useEffect(() => {
@@ -96,9 +99,7 @@ export default function ServicesContent() {
       setMaxPrice([Number(maxPriceParam)]);
     }
     if (searchParam) {
-  setSearchQuery(searchParam);
-  setSearchInput(searchParam);
-  setUseFuzzySearch(true);
+      setSearchQuery(searchParam);
     }
     if (sort) {
       setSortBy(sort);
@@ -109,6 +110,8 @@ export default function ServicesContent() {
   useEffect(() => {
     fetchServices();
   }, []);
+
+
 
   const fetchServices = async () => {
     try {
@@ -127,26 +130,9 @@ export default function ServicesContent() {
     }
   };
 
-  // Trigger fuzzy search when query changes and fuzzy search is enabled
-  useEffect(() => {
-    if (useFuzzySearch && searchQuery.trim()) {
-      const filters = {
-        category: selectedCategory || undefined,
-        hall: selectedHall || undefined,
-        experience: selectedExperienceRange || undefined,
-        minPrice: minPrice[0] > 0 ? minPrice[0] : undefined,
-        maxPrice: maxPrice[0] < 50000 ? maxPrice[0] : undefined
-      };
-      search(searchQuery, filters);
-    }
-  }, [searchQuery, selectedCategory, selectedHall, selectedExperienceRange, minPrice, maxPrice, useFuzzySearch, search]);
+  // Local search - no API calls needed
 
-  // If search field becomes empty, reset fuzzy search mode
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setUseFuzzySearch(false);
-    }
-  }, [searchQuery]);
+  // Local search - no special handling needed
 
   // Update URL when filters change (desktop)
   const updateURL = useCallback((filters: FilterState) => {
@@ -163,6 +149,20 @@ export default function ServicesContent() {
     const newURL = queryString ? `/services?${queryString}` : '/services';
     router.push(newURL, { scroll: false });
   }, [router]);
+
+  // Update URL when debounced search query or price changes (to keep URL and filtering in sync)
+  useEffect(() => {
+    const filters: FilterState = {
+      category: selectedCategory,
+      hall: selectedHall,
+      experience: selectedExperienceRange,
+      minPrice: debouncedMinPrice,
+      maxPrice: debouncedMaxPrice,
+      search: debouncedSearchForURL,
+      sort: sortBy
+    };
+    updateURL(filters);
+  }, [debouncedSearchForURL, debouncedMinPrice, debouncedMaxPrice, selectedCategory, selectedHall, selectedExperienceRange, sortBy, updateURL]);
 
   const handleFilterChange = useCallback((filterType: string, value: string | number, isMobile: boolean = false) => {
     const filters: FilterState = {
@@ -208,13 +208,15 @@ export default function ServicesContent() {
         break;
     }
 
-    // Update URL (with a delay for mobile)
-    if (isMobile) {
-      setTimeout(() => {
+    // Update URL immediately for all filters except search and price (search and price are handled by debounced useEffect)
+    if (filterType !== 'search' && filterType !== 'minPrice' && filterType !== 'maxPrice') {
+      if (isMobile) {
+        setTimeout(() => {
+          updateURL(filters);
+        }, 50);
+      } else {
         updateURL(filters);
-      }, 50);
-    } else {
-      updateURL(filters);
+      }
     }
   }, [selectedCategory, selectedHall, selectedExperienceRange, minPrice, maxPrice, searchQuery, sortBy, updateURL]);
 
@@ -225,47 +227,38 @@ export default function ServicesContent() {
     setMinPrice([0]);
     setMaxPrice([50000]);
     setSearchQuery('');
-    setSearchInput('');
     setSortBy('newest');
     router.push('/services');
   };
 
-  // Debounce search input changes (700ms)
-  useEffect(() => {
-    const id = setTimeout(() => {
-      // update searchQuery which controls filtering / fuzzy search mode
-      handleFilterChange('search', searchInput);
-      if (searchInput.trim()) setUseFuzzySearch(true);
-    }, 700);
-
-    return () => clearTimeout(id);
-  }, [searchInput, handleFilterChange]);
-
-  // For fuzzy search, if active use fuzzyResults; otherwise filter locally.
-  const filteredServices = useFuzzySearch
-    ? fuzzyResults
-    : services.filter((service: Service) => {
-        const matchesSearch = !searchQuery ||
-          service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()));
-        const matchesCategory = !selectedCategory || service.category === selectedCategory;
-        const matchesHall = !selectedHall || service.addressHall === selectedHall;
-        let matchesExperience = true;
-        if (selectedExperienceRange) {
-          const expRange = EXPERIENCE_RANGES.find(r => r.value === selectedExperienceRange);
-          if (expRange && service.experienceYears != null) {
-            const exp = service.experienceYears || 0;
-            matchesExperience = exp >= expRange.min && exp <= expRange.max;
-          } else {
-            matchesExperience = false;
-          }
+  // Local search - filter services by title and description
+  const filteredServices = useMemo(() => {
+    return services.filter((service: Service) => {
+      // Search in title and description using space-insensitive matching
+      const matchesSearch = matchesSearchQuery(service.title, service.description, debouncedSearchQuery);
+      
+      // Apply other filters
+      const matchesCategory = !selectedCategory || service.category === selectedCategory;
+      const matchesHall = !selectedHall || service.addressHall === selectedHall;
+      
+      let matchesExperience = true;
+      if (selectedExperienceRange) {
+        const expRange = EXPERIENCE_RANGES.find(r => r.value === selectedExperienceRange);
+        if (expRange && service.experienceYears != null) {
+          const exp = service.experienceYears || 0;
+          matchesExperience = exp >= expRange.min && exp <= expRange.max;
+        } else {
+          matchesExperience = false;
         }
-        const serviceMinPrice = service.minPrice || 0;
-        const serviceMaxPrice = service.maxPrice || serviceMinPrice || 0;
-        const matchesPrice = serviceMinPrice >= minPrice[0] && serviceMaxPrice <= maxPrice[0];
+      }
+      
+      const serviceMinPrice = service.minPrice || 0;
+      const serviceMaxPrice = service.maxPrice || serviceMinPrice || 0;
+      const matchesPrice = serviceMinPrice >= debouncedMinPrice && serviceMaxPrice <= debouncedMaxPrice;
 
-        return matchesSearch && matchesCategory && matchesHall && matchesExperience && matchesPrice;
-      });
+      return matchesSearch && matchesCategory && matchesHall && matchesExperience && matchesPrice;
+    });
+  }, [services, debouncedSearchQuery, selectedCategory, selectedHall, selectedExperienceRange, debouncedMinPrice, debouncedMaxPrice]);
 
   const sortedServices = [...filteredServices].sort((a: Service, b: Service) => {
     switch (sortBy) {
@@ -440,8 +433,8 @@ export default function ServicesContent() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       placeholder="Search services..."
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
+                      value={searchQuery}
+                      onChange={(e) => handleFilterChange('search', e.target.value)}
                       className="pl-10 glass border-white/20"
                     />
                   </div>

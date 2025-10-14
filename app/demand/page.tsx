@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import Link from 'next/link';
 import { Search, MessageSquare, Plus, Filter, X } from 'lucide-react';
 import MainLayout from '@/components/MainLayout';
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Demand } from '@/lib/types';
 import { PRODUCT_CATEGORIES, SERVICE_CATEGORIES } from '@/lib/constants';
-import { useDemandSearch } from '@/hooks/useDemandSearch';
+// Local search implementation - no API calls needed
 
 export default function DemandsPage() {
   const [demands, setDemands] = useState<Demand[]>([]);
@@ -21,15 +22,9 @@ export default function DemandsPage() {
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [sortBy, setSortBy] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
-  const [useFuzzySearch, setUseFuzzySearch] = useState(false);
-
-  // Fuzzy search hook for demands
-  const {
-    results: fuzzyResults,
-    // loading: fuzzyLoading,
-    // error: fuzzyError,
-    search: fuzzySearch,
-  } = useDemandSearch();
+  // Local search - filter demands by title and description with debouncing
+  const debouncedSearchQuery = useDebounce(searchQuery, 70);
+  console.log('Demands page - Search query:', searchQuery, 'Debounced:', debouncedSearchQuery)
 
   useEffect(() => {
     fetchDemands();
@@ -53,53 +48,30 @@ export default function DemandsPage() {
     }
   };
 
-  // Debounced fuzzy search (300ms)
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (useFuzzySearch && searchQuery.trim()) {
-        const filters = {
-          category: selectedCategory !== 'All Categories' ? selectedCategory : undefined,
-        };
-        fuzzySearch(searchQuery, filters);
-      }
-    }, 700);
-    return () => clearTimeout(handler);
-  }, [searchQuery, selectedCategory, useFuzzySearch, fuzzySearch]);
+  // Local search - no API calls needed
 
-  // Reset fuzzy mode when search input is empty
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setUseFuzzySearch(false);
-    }
-  }, [searchQuery]);
-
-  // Local (client-side) filtering when fuzzy mode is not used
-  const localFilteredDemands = useMemo(() => {
+  // Local search - filter demands by title and description
+  const filteredDemands = useMemo(() => {
     return demands.filter((demand: Demand) => {
+      // Search in title and description using debounced query
       const matchesSearch =
-        !searchQuery ||
-        demand.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        !debouncedSearchQuery ||
+        demand.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         (demand.description &&
-          demand.description.toLowerCase().includes(searchQuery.toLowerCase()));
+          demand.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()));
 
+      // Filter by category
       const demandCategory = demand.productCategory || demand.serviceCategory;
       const matchesCategory =
         selectedCategory === 'All Categories' || demandCategory === selectedCategory;
+      
       return matchesSearch && matchesCategory;
     });
-  }, [demands, searchQuery, selectedCategory]);
-
-  // When fuzzy mode is active, use fuzzy results; otherwise, use local filtering.
-  const displayedDemands = useMemo(() => {
-    if (useFuzzySearch) {
-      return fuzzyResults;
-    }
-    return localFilteredDemands;
-  }, [useFuzzySearch, fuzzyResults, localFilteredDemands]);
+  }, [demands, debouncedSearchQuery, selectedCategory]);
 
   // Sort the demands
   const sortedDemands = useMemo(() => {
-    return [...displayedDemands].sort((a: Demand, b: Demand) => {
+    return [...filteredDemands].sort((a: Demand, b: Demand) => {
       switch (sortBy) {
         case 'newest':
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -109,7 +81,7 @@ export default function DemandsPage() {
           return 0;
       }
     });
-  }, [displayedDemands, sortBy]);
+  }, [filteredDemands, sortBy]);
 
   const formatRelativeTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -127,24 +99,16 @@ export default function DemandsPage() {
     setSearchQuery('');
     setSortBy('newest');
     setShowFilters(false);
-    setUseFuzzySearch(false);
   };
 
   const hasActiveFilters = selectedCategory !== 'All Categories' || searchQuery || sortBy !== 'newest';
 
-  // Function to trigger fuzzy search on Enter key or button click
-  const executeSearch = () => {
-    if (searchQuery.trim()) {
-      setUseFuzzySearch(true);
-    } else {
-      setUseFuzzySearch(false);
-    }
-  };
+  // Local search - no special execution needed, search happens automatically
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      executeSearch();
+      // Search happens automatically via filteredDemands useMemo
     }
   };
 

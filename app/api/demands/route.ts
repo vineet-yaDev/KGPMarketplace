@@ -2,8 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { validateSession } from '@/lib/auth-helpers'
 import { getAllDemands, createDemand } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Get query parameters from the request URL
+    const { searchParams } = new URL(request.url)
+    const forSearch = searchParams.get('forSearch') // Flag to get all demands for search
+    
+    // If forSearch flag is set, return all demands for client-side filtering
+    if (forSearch === 'true') {
+      const { getAllDemandsForSearch } = await import('@/lib/db')
+      const demands = await getAllDemandsForSearch()
+      return NextResponse.json({ demands })
+    }
+    
     const demands = await getAllDemands()
     return NextResponse.json({ demands })
   } catch (error) {

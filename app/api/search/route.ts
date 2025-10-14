@@ -1,68 +1,127 @@
-// app/api/search/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { searchService } from '@/lib/search';
+import { NextResponse } from 'next/server'
+import { performGlobalSearch, SearchOptions } from '@/lib/searchService'
+import { prisma } from '@/lib/prisma'
 
-interface UniversalSearchFilters {
-  category?: string;
-  hall?: string;
-  type?: 'product' | 'service' | 'demand';
-  priceRange?: {
-    min?: number;
-    max?: number;
-  };
-}
-
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const query = searchParams.get('q');
-
-    // Return early if no query provided
-    if (!query || query.trim().length === 0) {
+    const { searchParams } = new URL(request.url)
+    const query = searchParams.get('q') || ''
+    const maxResults = parseInt(searchParams.get('limit') || '20')
+    
+    if (!query.trim() || query.length < 2) {
       return NextResponse.json({
         products: [],
         services: [],
         demands: [],
-        total: 0
-      });
+        total: 0,
+        query
+      })
     }
 
-    // Define a properly typed filters object
-    const filters: UniversalSearchFilters = {};
-    
-    // Read all potential filters from the URL
-    const category = searchParams.get('category');
-    const hall = searchParams.get('hall');
-    const minPrice = searchParams.get('minPrice');
-    const maxPrice = searchParams.get('maxPrice');
-    const type = searchParams.get('type');
+    // Fetch all data from database
+    const [products, services, demands] = await Promise.all([
+      prisma.product.findMany({
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          price: true,
+          category: true,
+          addressHall: true,
+          images: true,
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      }),
+      prisma.service.findMany({
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          minPrice: true,
+          maxPrice: true,
+          category: true,
+          addressHall: true,
+          images: true,
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      }),
+      prisma.demand.findMany({
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          productCategory: true,
+          serviceCategory: true,
+          createdAt: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      })
+    ])
 
-    if (category) filters.category = category;
-    if (hall) filters.hall = hall;
-    if (type && (type === 'product' || type === 'service' || type === 'demand')) {
-      filters.type = type;
-    }
-    
-    // Handle price range filter
-    const min = minPrice ? parseFloat(minPrice) : NaN;
-    const max = maxPrice ? parseFloat(maxPrice) : NaN;
-    if (!isNaN(min) || !isNaN(max)) {
-      filters.priceRange = { 
-        min: isNaN(min) ? undefined : min, 
-        max: isNaN(max) ? undefined : max 
-      };
+    // Search options
+    const searchOptions: SearchOptions = {
+      caseSensitive: false,
+      exactMatch: false,
+      maxResults: maxResults
     }
 
-    // Perform the universal search with the query and filters
-    const results = await searchService.universalSearch(query, filters);
-    
-    return NextResponse.json(results);
+    // Prepare data for search
+    const searchData = {
+      products: products.map(p => ({
+        id: p.id,
+        title: p.title,
+        description: p.description || undefined,
+        price: p.price,
+        category: p.category,
+        addressHall: p.addressHall,
+        images: p.images,
+        createdAt: p.createdAt
+      })),
+      services: services.map(s => ({
+        id: s.id,
+        title: s.title,
+        description: s.description || undefined,
+        minPrice: s.minPrice,
+        maxPrice: s.maxPrice,
+        category: s.category,
+        addressHall: s.addressHall,
+        images: s.images,
+        createdAt: s.createdAt
+      })),
+      demands: demands.map(d => ({
+        id: d.id,
+        title: d.title,
+        description: d.description || undefined,
+        productCategory: d.productCategory,
+        serviceCategory: d.serviceCategory,
+        createdAt: d.createdAt
+      }))
+    }
+
+    // Perform global search
+    const searchResults = performGlobalSearch(searchData, query, searchOptions)
+
+    // Add suggestions if no results found
+    if (searchResults.total === 0) {
+      const { generateSearchSuggestions } = await import('@/lib/searchService')
+      searchResults.suggestions = generateSearchSuggestions(searchData, query, 3)
+    }
+
+    return NextResponse.json(searchResults)
 
   } catch (error) {
-    console.error('Search API error:', error);
+    console.error('Global search API error:', error)
     return NextResponse.json(
-      { message: 'An internal error occurred during search.' },
+      { error: 'Search failed' },
       { status: 500 }
-    );
+    )
   }
 }

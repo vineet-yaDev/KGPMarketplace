@@ -32,10 +32,32 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/contexts/AuthContext'
-import { useSearch } from '@/hooks/useSearch'
+import { useGlobalSearch } from '@/hooks/useGlobalSearch'
 
 interface MainLayoutProps {
   children: ReactNode
+}
+
+interface ProductSearchResult {
+  id: string
+  title: string
+  price?: number
+  category: string
+}
+
+interface ServiceSearchResult {
+  id: string
+  title: string
+  minPrice?: number
+  maxPrice?: number
+  category: string
+}
+
+interface DemandSearchResult {
+  id: string
+  title: string
+  productCategory?: string
+  serviceCategory?: string
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
@@ -43,18 +65,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const pathname = usePathname()
-  const [searchQuery, setSearchQuery] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isDesktopSearchFocused, setIsDesktopSearchFocused] = useState(false)
   const [isMobileSearchFocused, setIsMobileSearchFocused] = useState(false)
   const desktopSearchContainerRef = useRef<HTMLDivElement>(null)
   const mobileSearchContainerRef = useRef<HTMLDivElement>(null)
 
-  const { search, results, loading, error } = useSearch()
+  const { search, results, loading, error, searchQuery } = useGlobalSearch()
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value
-    setSearchQuery(query)
     search(query)
   }
 
@@ -165,60 +185,126 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
               {/* Desktop Search dropdown */}
               {showDesktopDropdown && (
-                <div className="absolute top-full mt-2 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
+                <div className="absolute top-full mt-2 w-full max-w-lg glass-dropdown border border-white/20 bg-white/80 dark:bg-black/90 backdrop-blur-xl rounded-md shadow-lg p-2 z-10 max-h-96 overflow-y-auto">
                   {loading && (
-                    <div className="flex items-center justify-center p-2 text-muted-foreground">
+                    <div className="flex items-center justify-center p-3 text-muted-foreground">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Searching...
+                      Searching with fuzzy matching...
                     </div>
                   )}
-                  {!loading && error && <div className="p-2 text-center text-destructive">{error}</div>}
+                  {!loading && error && <div className="p-2 text-center text-destructive text-sm">{error}</div>}
                   {!loading && !error && results && (
                     <>
                       {hasResults ? (
                         <div className="space-y-1">
-                          {results.products.length > 0 && (
+                          {/* Search Results Summary */}
+                          <div className="px-2 py-1 text-xs text-muted-foreground border-b">
+                            {results.products.length > 0 && `${results.products.length} products`}
+                            {results.services.length > 0 && results.products.length > 0 && ' • '}
+                            {results.services.length > 0 && `${results.services.length} services`}
+                            {results.demands.length > 0 && (results.products.length > 0 || results.services.length > 0) && ' • '}
+                            {results.demands.length > 0 && `${results.demands.length} demands`} found
+                          </div>
+                          
+                          {/* Individual Product Results */}
+                          {results.products.slice(0, 3).map((result) => (
+                            <Link
+                              key={result.item.id}
+                              href={`/products/${result.item.id}`}
+                              onClick={() => setIsDesktopSearchFocused(false)}
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                            >
+                              <ShoppingBag className="mr-3 h-4 w-4 text-primary flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{result.item.title}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {(result.item as unknown as ProductSearchResult).price ? `₹${(result.item as unknown as ProductSearchResult).price}` : 'Free'} • {(result.item as unknown as ProductSearchResult).category}
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                          
+                          {/* Show more products link */}
+                          {results.products.length > 3 && (
                             <Link
                               href={`/products?search=${encodeURIComponent(searchQuery)}`}
                               onClick={() => setIsDesktopSearchFocused(false)}
-                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-primary text-sm"
                             >
-                              <ShoppingBag className="mr-3 h-4 w-4 text-primary" />{' '}
-                              <span>
-                                {results.products.length} product
-                                {results.products.length > 1 ? 's' : ''} found
-                              </span>
+                              <ShoppingBag className="mr-3 h-4 w-4" />
+                              <span className="font-bold">View all {results.products.length} products</span>
                             </Link>
                           )}
-                          {results.services.length > 0 && (
+                          
+                          {/* Individual Service Results */}
+                          {results.services.slice(0, 3).map((result) => (
+                            <Link
+                              key={result.item.id}
+                              href={`/services/${result.item.id}`}
+                              onClick={() => setIsDesktopSearchFocused(false)}
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                            >
+                              <Briefcase className="mr-3 h-4 w-4 text-primary flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{result.item.title}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  ₹{(result.item as unknown as ServiceSearchResult).minPrice}-{(result.item as unknown as ServiceSearchResult).maxPrice} • {(result.item as unknown as ServiceSearchResult).category}
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                          
+                          {/* Show more services link */}
+                          {results.services.length > 3 && (
                             <Link
                               href={`/services?search=${encodeURIComponent(searchQuery)}`}
                               onClick={() => setIsDesktopSearchFocused(false)}
-                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-primary text-sm"
                             >
-                              <Briefcase className="mr-3 h-4 w-4 text-primary" />{' '}
-                              <span>
-                                {results.services.length} service
-                                {results.services.length > 1 ? 's' : ''} found
-                              </span>
+                              <Briefcase className="mr-3 h-4 w-4" />
+                              <span className="font-bold">View all {results.services.length} services</span>
                             </Link>
                           )}
-                          {results.demands.length > 0 && (
+                          
+                          {/* Individual Demand Results */}
+                          {results.demands.slice(0, 2).map((result) => (
+                            <Link
+                              key={result.item.id}
+                              href={`/demand/${result.item.id}`}
+                              onClick={() => setIsDesktopSearchFocused(false)}
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                            >
+                              <MessageSquare className="mr-3 h-4 w-4 text-primary flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">{result.item.title}</div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {(result.item as unknown as DemandSearchResult).productCategory || (result.item as unknown as DemandSearchResult).serviceCategory}
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                          
+                          {/* Show more demands link */}
+                          {results.demands.length > 2 && (
                             <Link
                               href={`/demand?search=${encodeURIComponent(searchQuery)}`}
                               onClick={() => setIsDesktopSearchFocused(false)}
-                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                              className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-primary text-sm"
                             >
-                              <MessageSquare className="mr-3 h-4 w-4 text-primary" />{' '}
-                              <span>
-                                {results.demands.length} demand
-                                {results.demands.length > 1 ? 's' : ''} found
-                              </span>
+                              <MessageSquare className="mr-3 h-4 w-4" />
+                              <span className="font-bold">View all {results.demands.length} demands</span>
                             </Link>
                           )}
                         </div>
                       ) : (
-                        <div className="p-2 text-center text-muted-foreground">No results found.</div>
+                        <div className="p-3 text-center">
+                          <div className="text-muted-foreground text-sm mb-2">No exact matches found</div>
+                          {results.suggestions && results.suggestions.length > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              Try: {results.suggestions.join(', ')}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </>
                   )}
@@ -290,7 +376,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
-                    className="w-56 glass-dropdown border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl"
+                    className="w-56 glass-dropdown border-white/20 bg-white/80 dark:bg-black/90 backdrop-blur-xl"
                     align="end"
                   >
                     <div className="flex items-center justify-start gap-2 p-2">
@@ -359,60 +445,117 @@ export default function MainLayout({ children }: MainLayoutProps) {
             />
             {/* Mobile Search Results Dropdown */}
             {showMobileDropdown && (
-              <div className="absolute top-full mt-1 w-full glass-dropdown border border-white/20 bg-white/95 dark:bg-black/80 backdrop-blur-xl rounded-md shadow-lg p-2 z-10">
+              <div className="absolute top-full mt-1 w-full glass-dropdown border border-white/20 bg-white/80 dark:bg-black/90 backdrop-blur-xl rounded-md shadow-lg p-2 z-10 max-h-80 overflow-y-auto">
                 {loading && (
-                  <div className="flex items-center justify-center p-2 text-muted-foreground">
+                  <div className="flex items-center justify-center p-3 text-muted-foreground">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Searching...
+                    Fuzzy searching...
                   </div>
                 )}
-                {!loading && error && <div className="p-2 text-center text-destructive">{error}</div>}
+                {!loading && error && <div className="p-2 text-center text-destructive text-sm">{error}</div>}
                 {!loading && !error && results && (
                   <>
                     {hasResults ? (
                       <div className="space-y-1">
-                        {results.products.length > 0 && (
+                        {/* Search Results Summary */}
+                        <div className="px-2 py-1 text-xs text-muted-foreground border-b">
+                          {results.products.length > 0 && `${results.products.length} products`}
+                          {results.services.length > 0 && results.products.length > 0 && ' • '}
+                          {results.services.length > 0 && `${results.services.length} services`}
+                          {results.demands.length > 0 && (results.products.length > 0 || results.services.length > 0) && ' • '}
+                          {results.demands.length > 0 && `${results.demands.length} demands`} found
+                        </div>
+                        
+                        {/* Top Products */}
+                        {results.products.slice(0, 2).map((result) => (
+                          <Link
+                            key={result.item.id}
+                            href={`/products/${result.item.id}`}
+                            onClick={() => setIsMobileSearchFocused(false)}
+                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                          >
+                            <ShoppingBag className="mr-3 h-3 w-3 text-primary flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{result.item.title}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {(result.item as unknown as ProductSearchResult).price ? `₹${(result.item as unknown as ProductSearchResult).price}` : 'Free'}
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                        {results.products.length > 2 && (
                           <Link
                             href={`/products?search=${encodeURIComponent(searchQuery)}`}
                             onClick={() => setIsMobileSearchFocused(false)}
-                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                            className="flex items-center p-2 text-primary text-sm"
                           >
-                            <ShoppingBag className="mr-3 h-4 w-4 text-primary" />{' '}
-                            <span>
-                              {results.products.length} product
-                              {results.products.length > 1 ? 's' : ''} found
-                            </span>
+                            <ShoppingBag className="mr-3 h-3 w-3" />
+                            <span className="font-bold">+{results.products.length - 2} more products</span>
                           </Link>
                         )}
-                        {results.services.length > 0 && (
+                        
+                        {/* Top Services */}
+                        {results.services.slice(0, 2).map((result) => (
+                          <Link
+                            key={result.item.id}
+                            href={`/services/${result.item.id}`}
+                            onClick={() => setIsMobileSearchFocused(false)}
+                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                          >
+                            <Briefcase className="mr-3 h-3 w-3 text-primary flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{result.item.title}</div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                ₹{(result.item as unknown as ServiceSearchResult).minPrice}-{(result.item as unknown as ServiceSearchResult).maxPrice}
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                        {results.services.length > 2 && (
                           <Link
                             href={`/services?search=${encodeURIComponent(searchQuery)}`}
                             onClick={() => setIsMobileSearchFocused(false)}
-                            className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
+                            className="flex items-center p-2 text-primary text-sm"
                           >
-                            <Briefcase className="mr-3 h-4 w-4 text-primary" />{' '}
-                            <span>
-                              {results.services.length} service
-                              {results.services.length > 1 ? 's' : ''} found
-                            </span>
+                            <Briefcase className="mr-3 h-3 w-3" />
+                            <span className="font-bold">+{results.services.length - 2} more services</span>
                           </Link>
                         )}
-                        {results.demands.length > 0 && (
+                        
+                        {/* Top Demands */}
+                        {results.demands.slice(0, 1).map((result) => (
                           <Link
-                            href={`/demand?search=${encodeURIComponent(searchQuery)}`}
+                            key={result.item.id}
+                            href={`/demand/${result.item.id}`}
                             onClick={() => setIsMobileSearchFocused(false)}
                             className="flex items-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10"
                           >
-                            <MessageSquare className="mr-3 h-4 w-4 text-primary" />{' '}
-                            <span>
-                              {results.demands.length} demand
-                              {results.demands.length > 1 ? 's' : ''} found
-                            </span>
+                            <MessageSquare className="mr-3 h-3 w-3 text-primary flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{result.item.title}</div>
+                            </div>
+                          </Link>
+                        ))}
+                        {results.demands.length > 1 && (
+                          <Link
+                            href={`/demand?search=${encodeURIComponent(searchQuery)}`}
+                            onClick={() => setIsMobileSearchFocused(false)}
+                            className="flex items-center p-2 text-primary text-sm"
+                          >
+                            <MessageSquare className="mr-3 h-3 w-3" />
+                            <span className="font-bold">+{results.demands.length - 1} more demands</span>
                           </Link>
                         )}
                       </div>
                     ) : (
-                      <div className="p-2 text-center text-muted-foreground">No results found.</div>
+                      <div className="p-3 text-center">
+                        <div className="text-muted-foreground text-sm mb-2">No matches found</div>
+                        {results.suggestions && results.suggestions.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Try: {results.suggestions.slice(0, 3).join(', ')}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </>
                 )}
