@@ -9,6 +9,31 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Product } from '@/lib/types'
 
+// Condition Bar Component
+const ConditionBar = ({ condition }: { condition: number }) => {
+  const getConditionColor = (cond: number) => {
+    if (cond >= 5) return 'bg-green-500' // Excellent
+    if (cond >= 4) return 'bg-lime-400' // Very Good
+    if (cond >= 3) return 'bg-yellow-400' // Good
+    if (cond >= 2) return 'bg-orange-400' // Fair
+    return 'bg-red-500' // Poor
+  }
+
+  const percentage = (condition / 5) * 100
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${getConditionColor(condition)} transition-all duration-300 rounded-full`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground">{condition}/5</span>
+    </div>
+  )
+}
+
 interface RecentProductsProps {
   className?: string
 }
@@ -151,9 +176,7 @@ export default function RecentProducts({ className = "" }: RecentProductsProps) 
                     )}
                   </div>
                   {product.condition && (
-                    <Badge variant="secondary" className="text-xs">
-                      {product.condition}/5
-                    </Badge>
+                    <ConditionBar condition={product.condition || 0} />
                   )}
                 </div>
                 

@@ -30,6 +30,30 @@ import {
 } from '@/lib/constants'
 import { matchesSearchQuery } from '@/lib/searchUtils'
 
+// Condition Bar Component
+const ConditionBar = ({ condition }: { condition: number }) => {
+  const getConditionColor = (cond: number) => {
+    if (cond >= 5) return 'bg-green-500' // Excellent
+    if (cond >= 4) return 'bg-lime-400' // Very Good
+    if (cond >= 3) return 'bg-yellow-400' // Good
+    if (cond >= 2) return 'bg-orange-400' // Fair
+    return 'bg-red-500' // Poor
+  }
+
+  const percentage = (condition / 5) * 100
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${getConditionColor(condition)} transition-all duration-300 rounded-full`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground">{condition}/5</span>
+    </div>
+  )
+}
 
 // Type for FilterDropdown props
 interface FilterDropdownProps {
@@ -909,7 +933,10 @@ export default function ProductsContent() {
   </div>
   
   <div className="flex items-center justify-end flex-wrap gap-2">
-    <Badge variant="secondary" className="text-xs">Condition: {product.condition}/5</Badge>
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground">Condition:</span>
+      <ConditionBar condition={product.condition || 0} />
+    </div>
     {/* {product.addressHall && (
       <span className="text-xs text-muted-foreground">{product.addressHall}</span>
     )} */}
@@ -971,29 +998,28 @@ export default function ProductsContent() {
                         </div>
                         <CardContent className="p-2">
                           <h3 className="font-semibold text-xs line-clamp-2 mb-1 leading-tight">{product.title}</h3>
-                          <div className="flex items-center justify-between mb-1">
-                            {/* Show FREE if price is 0, otherwise show regular price */}
-    {product.price === 0 || !product.price ? (
-      <span className="font-bold text-base sm:text-lg text-green-600">
-        FREE
-      </span>
-    ) : (
-      product.price && (
-        <span className="font-bold text-base sm:text-lg text-primary">
-          {formatCurrency(product.price)}
-        </span>
-      )
-    )}
-    {/* Strike through original price if it exists and current price is 0 (FREE) */}
-    {product.originalPrice && (
-      <span className="text-xs sm:text-sm text-muted-foreground line-through">
-        {formatCurrency(product.originalPrice)}
-      </span>
-    )}
-
-                            <Badge variant="secondary" className="text-xs px-1 py-0">
-                              {product.condition}/5
-                            </Badge>
+                          <div className="flex items-center justify-between gap-2">
+                            {/* Left side - Price */}
+                            <div className="flex items-baseline space-x-1">
+                              {product.price === 0 || !product.price ? (
+                                <span className="font-bold text-sm text-green-600">
+                                  FREE
+                                </span>
+                              ) : (
+                                product.price && (
+                                  <span className="font-bold text-sm text-primary">
+                                    {formatCurrency(product.price)}
+                                  </span>
+                                )
+                              )}
+                              {product.originalPrice && (
+                                <span className="text-xs text-muted-foreground line-through">
+                                  {formatCurrency(product.originalPrice)}
+                                </span>
+                              )}
+                            </div>
+                            {/* Right side - Condition */}
+                            <ConditionBar condition={product.condition || 0} />
                           </div>
                           {/* {product.addressHall && (
                             <p className="text-xs text-muted-foreground truncate">{product.addressHall}</p>
@@ -1104,11 +1130,10 @@ export default function ProductsContent() {
     )}
   </div>
   
-  {/* Right side - Badge */}
-  <div className="flex justify-end sm:justify-center">
-    <Badge variant="secondary" className="text-xs whitespace-nowrap">
-      {product.condition}/5
-    </Badge>
+  {/* Right side - Condition Bar */}
+  <div className="flex justify-end sm:justify-center items-center gap-1.5">
+    <span className="text-xs text-muted-foreground">Condition:</span>
+    <ConditionBar condition={product.condition || 0} />
   </div>
 </div>
 
