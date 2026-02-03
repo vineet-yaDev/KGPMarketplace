@@ -13,7 +13,7 @@ export default function AboutUsPage() {
     {
       name: "Vineet Yadav",
       role: "Co-Founder & CTO",
-      image: "",
+      image: "/vineet.jpg",
       bio: "Curious by nature, I co-founded my current venture to solve real problems through intuitive digital products. As a full stack developer, I focus on building reliable, scalable solutions with React, Node.js, TypeScript, and NextJS. I enjoy turning complex challenges into user-friendly experiences and always look for ways to learn and collaborate along the way.",
       skills: ["NextJS", "PostgreSQL", "TypeScript", "Tailwind"],
       social: {
@@ -27,7 +27,7 @@ export default function AboutUsPage() {
     {
       name: "Sudeep Bhurat",
       role: "Co-Founder & CEO",
-      image: "",
+      image: "/sudeep.png",
       bio: "Co-Founder and Product Manager passionate about making things easier and more enjoyable for people. Focused on turning ideas into practical solutions, Sudeep collaborates closely with teams to ensure every product feels simple and approachable for users.",
       skills: ["Figma", "Design Systems", "User Researchs", "Prototyping"],
       social: {
@@ -37,20 +37,6 @@ export default function AboutUsPage() {
         email: "sudeepbhurat@gmail.com"
       },
       gradient: "from-pink-600 via-rose-600 to-orange-600"
-    },
-    {
-      name: "Sachin",
-      role: "Co-Founder & CTO",
-      image: "",
-      bio: "As Co-Founder and CTO, Sachin is the technical architect behind the platform. With a deep passion for clean code and robust systems, he leads the engineering efforts to ensure a secure, scalable, and high-performance experience for all users. He thrives on solving complex technical puzzles and mentoring the development team.",
-      skills: ["Tailwind", "NextJS", "Vercel", "System Design"],
-      social: {
-        github: "https://github.com/sachin",
-        instagram: "https://instagram.com/sachin",
-        linkedin: "https://linkedin.com/in/sachin",
-        email: "sachin@example.com"
-      },
-      gradient: "from-green-500 via-teal-500 to-cyan-500"
     }
   ]
 
